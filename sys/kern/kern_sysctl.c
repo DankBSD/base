@@ -2201,6 +2201,13 @@ sysctl_root(SYSCTL_HANDLER_ARGS)
 	}
 #endif
 
+	/* Is this sysctl available only to root? */
+	if (oid->oid_kind & CTLFLAG_ROOTONLY) {
+		error = priv_check(req->td, PRIV_SYSCTL_ROOTONLY);
+		if (error)
+			goto out;
+	}
+
 	/* Is this sysctl sensitive to securelevels? */
 	if (req->newptr && (oid->oid_kind & CTLFLAG_SECURE)) {
 		lvl = (oid->oid_kind & CTLMASK_SECURE) >> CTLSHIFT_SECURE;

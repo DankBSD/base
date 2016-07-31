@@ -240,6 +240,13 @@ priv_check_cred(struct ucred *cred, int priv)
 		}
 	}
 
+	if (priv == PRIV_SYSCTL_ROOTONLY) {
+		if (cred->cr_uid == 0) {
+			error = 0;
+			goto out;
+		}
+	}
+
 	/*
 	 * Writes to kernel/physical memory are a typical root-only operation,
 	 * but non-root users are expected to be able to read it (provided they

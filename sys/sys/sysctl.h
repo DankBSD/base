@@ -113,6 +113,9 @@ struct ctlname {
  */
 #define	CTLFLAG_NEEDGIANT 0x00000800	/* Handler require Giant */
 
+/* From HardenedBSD https://github.com/HardenedBSD/hardenedBSD/commit/242e90fe7486b1c1b920eefbf306b13a141fa927 */
+#define CTLFLAG_ROOTONLY 0x00000400 /* Only available to root */
+
 /*
  * Secure level.   Note that CTLFLAG_SECURE == CTLFLAG_SECURE1.
  *
