@@ -50,6 +50,8 @@
 #include "btuinput.h"
 #include "kbd.h"
 
+#define MAGIC_TRACKPAD(D) (((D)->vendor_id == 0x5ac) && ((D)->product_id == 0x30e))
+
 /*
  * Create new session
  */
@@ -128,7 +130,7 @@ session_run(bthid_session_p s)
 	getsockname(s->ctrl, (struct sockaddr *) &local, &len);
 
 	if (d->mouse && s->srv->uinput) {
-		s->umouse = uinput_open_mouse(d, &local.l2cap_bdaddr);
+		s->umouse = uinput_open_mouse(d, &local.l2cap_bdaddr, MAGIC_TRACKPAD(d));
 		if (s->umouse < 0) {
 			syslog(LOG_ERR, "Could not open /dev/uinput " \
 				"for %s. %s (%d)", bt_ntoa(&s->bdaddr,

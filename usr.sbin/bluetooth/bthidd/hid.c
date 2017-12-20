@@ -54,7 +54,7 @@
 #include "kbd.h"
 
 /*
- * Inoffical and unannounced report ids for Apple Mice and trackpad
+ * Unoffical and unannounced report ids for Apple mice and trackpads
  */
 #define TRACKPAD_REPORT_ID	0x28
 #define AMM_REPORT_ID		0x29
@@ -62,22 +62,32 @@
 #define BATT_STRENGTH_REPORT_ID	0x47
 #define SURFACE_REPORT_ID	0x61
 
+#define MAGIC_MOUSE(D) (((D)->vendor_id == 0x5ac) && ((D)->product_id == 0x30d))
+#define MAGIC_TRACKPAD(D) (((D)->vendor_id == 0x5ac) && ((D)->product_id == 0x30e))
+
 /*
- * Apple magic mouse (AMM) specific device state
+ * Apple magic mouse/trackpad (AMM/AMT) specific device state
  */
 #define AMM_MAX_BUTTONS 16
+#define AMM_BASIC_BLOCK   5
+#define AMM_FINGER_BLOCK  8
+#define AMM_VALID_REPORT(L) (((L) >= AMM_BASIC_BLOCK) && \
+	((L) <= AMM_MAX_BUTTONS*AMM_FINGER_BLOCK    + AMM_BASIC_BLOCK) && \
+	((L)  % AMM_FINGER_BLOCK)     == AMM_BASIC_BLOCK)
+#define AMM_WHEEL_SPEED 100
+
+#define AMT_MAX_TOUCHES 16
+#define AMT_BASIC_BLOCK   3
+#define AMT_FINGER_BLOCK  9
+#define AMT_VALID_REPORT(L) (((L) >= AMT_BASIC_BLOCK) && \
+	((L) <= AMT_MAX_TOUCHES*AMT_FINGER_BLOCK    + AMT_BASIC_BLOCK) && \
+	((L)  % AMT_FINGER_BLOCK)     == AMT_BASIC_BLOCK)
+#define AMT_STATE_MASK 0xf0
+
 struct apple_state {
 	int	y   [AMM_MAX_BUTTONS];
 	int	button_state;
 };
-
-#define MAGIC_MOUSE(D) (((D)->vendor_id == 0x5ac) && ((D)->product_id == 0x30d))
-#define AMM_BASIC_BLOCK   5
-#define AMM_FINGER_BLOCK  8
-#define AMM_VALID_REPORT(L) (((L) >= AMM_BASIC_BLOCK) && \
-    ((L) <= 16*AMM_FINGER_BLOCK    + AMM_BASIC_BLOCK) && \
-    ((L)  % AMM_FINGER_BLOCK)     == AMM_BASIC_BLOCK)
-#define AMM_WHEEL_SPEED 100
 
 /*
  * Probe for per-device initialisation
@@ -87,8 +97,8 @@ hid_initialise(bthid_session_p s)
 {
 	hid_device_p hid_device = get_hid_device(&s->bdaddr);
 
-	if (hid_device && MAGIC_MOUSE(hid_device)) {
-		/* Magic report to enable trackpad on Apple's Magic Mouse */
+	if (hid_device && (MAGIC_MOUSE(hid_device) || MAGIC_TRACKPAD(hid_device))) {
+		/* Magic report to enable touch on Apple's Magic Mouse/Trackpad */
 		static uint8_t rep[] = {0x53, 0xd7, 0x01};
 
 		if ((s->ctx = calloc(1, sizeof(struct apple_state))) == NULL)
@@ -511,6 +521,63 @@ check_middle_button:
 
 		if (mouse_butt != c->button_state)
 			c->button_state = mouse_butt, mevents++;
+	}
+
+	/*
+	 * Feed trackpad events into kernel.
+	 */
+	if (hid_device->mouse && s->srv->uinput && MAGIC_TRACKPAD(hid_device)) {
+		data++, len--;		/* Chomp report_id */
+
+		if (report_id == TRACKPAD_REPORT_ID && AMT_VALID_REPORT(len)) {
+			int nfingers = 0;
+
+			int clicked = data[0] & 1;
+
+			for (data += AMT_BASIC_BLOCK, len -= AMT_BASIC_BLOCK;
+				len >= AMT_FINGER_BLOCK;
+				data += AMT_FINGER_BLOCK, len -= AMT_FINGER_BLOCK) {
+				int32_t id = 0xf & (data[7] << 2 | data[6] >> 6);
+				int32_t x = (data[1] << 27 | data[0] << 19) >> 19;
+				int32_t y = -((data[3] << 30 | data[2] << 22 | data[1] << 14) >> 19);
+				int32_t orientation = (data[7] >> 2) - 32;
+				int32_t touch_major = data[4];
+				int32_t touch_minor = data[5];
+				int32_t state = data[8] & AMT_STATE_MASK;
+
+				if (uinput_rep_multi_touch(s->umouse, id, x, y, orientation,
+				    touch_major, touch_minor, state) < 0) {
+					syslog(LOG_ERR, "Could not process multi-touch events from " \
+						"%s. %s (%d)", bt_ntoa(&s->bdaddr, NULL),
+						strerror(errno), errno);
+				}
+
+				if (nfingers == 0) {
+					if (uinput_rep_single_touch(s->umouse, x, y, state) < 0) {
+						syslog(LOG_ERR, "Could not process single-touch events from " \
+							"%s. %s (%d)", bt_ntoa(&s->bdaddr, NULL),
+							strerror(errno), errno);
+					}
+				}
+
+				nfingers++;
+			}
+
+			if (uinput_rep_fingers(s->umouse, nfingers) < 0) {
+				syslog(LOG_ERR, "Could not process fingers events from " \
+						"%s. %s (%d)", bt_ntoa(&s->bdaddr, NULL),
+						strerror(errno), errno);
+			}
+
+			if (uinput_rep_click(s->umouse, clicked) < 0) {
+				syslog(LOG_ERR, "Could not process click events from " \
+						"%s. %s (%d)", bt_ntoa(&s->bdaddr, NULL),
+						strerror(errno), errno);
+			}
+
+		}
+
+		uinput_rep_sync(s->umouse);
 	}
 
 	/*

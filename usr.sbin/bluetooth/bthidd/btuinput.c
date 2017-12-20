@@ -54,6 +54,15 @@
 #include "bthidd.h"
 #include "btuinput.h"
 
+#define AMT_DIMENSION_X 13000.0f
+#define AMT_MIN_X -2909
+#define AMT_MAX_X 3167
+#define AMT_RES_X ((AMT_MAX_X - AMT_MIN_X) / (AMT_DIMENSION_X / 100))
+#define AMT_DIMENSION_Y 11000.0f
+#define AMT_MIN_Y -2456
+#define AMT_MAX_Y 2565
+#define AMT_RES_Y ((AMT_MAX_Y - AMT_MIN_Y) / (AMT_DIMENSION_Y / 100))
+
 static int16_t const mbuttons[8] = {
 	BTN_LEFT,
 	BTN_MIDDLE,
@@ -304,6 +313,7 @@ uinput_open_common(hid_device_p const p, bdaddr_p local, const uint8_t *name)
 	struct uinput_setup	uisetup;
 	uint8_t			phys[UINPUT_MAX_NAME_SIZE];
 	uint8_t			uniq[UINPUT_MAX_NAME_SIZE];
+	struct hostent		*hp;
 	int32_t			fd;
 
 	/* Take local and remote bdaddr */
@@ -313,6 +323,9 @@ uinput_open_common(hid_device_p const p, bdaddr_p local, const uint8_t *name)
 	/* Take device name from bthidd.conf. Fallback to generic name. */
 	if (p->name != NULL)
 		name = p->name;
+	else if ((hp = bt_gethostbyaddr((const char *)&p->bdaddr,
+				sizeof(p->bdaddr), AF_BLUETOOTH)) != NULL)
+		name = hp->h_name;
 
 	/* Set device name and bus/vendor information */
 	memset(&uisetup, 0, sizeof(uisetup));
@@ -338,7 +351,7 @@ uinput_open_common(hid_device_p const p, bdaddr_p local, const uint8_t *name)
  * TODO: bring in more feature detection code from ums
  */
 int32_t
-uinput_open_mouse(hid_device_p const p, bdaddr_p local)
+uinput_open_mouse(hid_device_p const p, bdaddr_p local, int is_apple_trackpad)
 {
 	size_t	i;
 	int32_t	fd;
@@ -348,21 +361,136 @@ uinput_open_mouse(hid_device_p const p, bdaddr_p local)
 	if ((fd = uinput_open_common(p, local, "Bluetooth Mouse")) < 0)
 		goto bail_out;
 
-	/* Advertise events and axes */
-	if (ioctl(fd, UI_SET_EVBIT, EV_SYN) < 0 ||
-	    ioctl(fd, UI_SET_EVBIT, EV_KEY) < 0 ||
-	    ioctl(fd, UI_SET_EVBIT, EV_REL) < 0 ||
-	    ioctl(fd, UI_SET_RELBIT, REL_X) < 0 ||
-	    ioctl(fd, UI_SET_RELBIT, REL_Y) < 0 ||
-	    (p->has_wheel && ioctl(fd, UI_SET_RELBIT, REL_WHEEL) < 0) ||
-	    (p->has_hwheel && ioctl(fd, UI_SET_RELBIT, REL_HWHEEL) < 0) ||
-	    ioctl(fd, UI_SET_PROPBIT, INPUT_PROP_POINTER) < 0)
-		goto bail_out;
-
-	/* Advertise mouse buttons */
-	for (i = 0; i < nitems(mbuttons); i++)
-		if (ioctl(fd, UI_SET_KEYBIT, mbuttons[i]) < 0)
+	/* Advertise multi-touch support */
+	if (is_apple_trackpad) {
+		if (ioctl(fd, UI_SET_EVBIT, EV_ABS) < 0 ||
+		    ioctl(fd, UI_SET_EVBIT, EV_KEY) < 0 ||
+		    ioctl(fd, UI_SET_KEYBIT, BTN_LEFT) < 0 ||
+		    ioctl(fd, UI_SET_KEYBIT, BTN_TOOL_FINGER) < 0 ||
+		    ioctl(fd, UI_SET_KEYBIT, BTN_TOOL_DOUBLETAP) < 0 ||
+		    ioctl(fd, UI_SET_KEYBIT, BTN_TOOL_TRIPLETAP) < 0 ||
+		    ioctl(fd, UI_SET_KEYBIT, BTN_TOOL_QUADTAP) < 0 ||
+		    ioctl(fd, UI_SET_KEYBIT, BTN_TOOL_QUINTTAP) < 0 ||
+		    ioctl(fd, UI_SET_KEYBIT, BTN_TOUCH) < 0 ||
+		    ioctl(fd, UI_SET_PROPBIT, INPUT_PROP_POINTER) < 0 ||
+		    ioctl(fd, UI_SET_PROPBIT, INPUT_PROP_BUTTONPAD) < 0)
 			goto bail_out;
+
+		struct uinput_abs_setup abs_x;
+		abs_x.code = ABS_X;
+		abs_x.absinfo.value = 0;
+		abs_x.absinfo.minimum = AMT_MIN_X;
+		abs_x.absinfo.maximum = AMT_MAX_X;
+		abs_x.absinfo.resolution = AMT_RES_X;
+		abs_x.absinfo.fuzz = 4;
+		abs_x.absinfo.flat = 0;
+		if (ioctl(fd, UI_ABS_SETUP, &abs_x) < 0)
+			goto bail_out;
+
+		struct uinput_abs_setup abs_y;
+		abs_y.code = ABS_Y;
+		abs_y.absinfo.value = 0;
+		abs_y.absinfo.minimum = AMT_MIN_Y;
+		abs_y.absinfo.maximum = AMT_MAX_Y;
+		abs_y.absinfo.resolution = AMT_RES_Y;
+		abs_y.absinfo.fuzz = 4;
+		abs_y.absinfo.flat = 0;
+		if (ioctl(fd, UI_ABS_SETUP, &abs_y) < 0)
+			goto bail_out;
+
+		struct uinput_abs_setup abs_x_mt;
+		abs_x_mt.code = ABS_MT_POSITION_X;
+		abs_x_mt.absinfo.value = 0;
+		abs_x_mt.absinfo.minimum = AMT_MIN_X;
+		abs_x_mt.absinfo.maximum = AMT_MAX_X;
+		abs_x_mt.absinfo.resolution = AMT_RES_X;
+		abs_x_mt.absinfo.fuzz = 4;
+		abs_x_mt.absinfo.flat = 0;
+		if (ioctl(fd, UI_ABS_SETUP, &abs_x_mt) < 0)
+			goto bail_out;
+
+		struct uinput_abs_setup abs_y_mt;
+		abs_y_mt.code = ABS_MT_POSITION_Y;
+		abs_y_mt.absinfo.value = 0;
+		abs_y_mt.absinfo.minimum = AMT_MIN_Y;
+		abs_y_mt.absinfo.maximum = AMT_MAX_Y;
+		abs_y_mt.absinfo.resolution = AMT_RES_Y;
+		abs_y_mt.absinfo.fuzz = 4;
+		abs_y_mt.absinfo.flat = 0;
+		if (ioctl(fd, UI_ABS_SETUP, &abs_y_mt) < 0)
+			goto bail_out;
+
+		struct uinput_abs_setup abs_slot;
+		abs_slot.code = ABS_MT_SLOT;
+		abs_slot.absinfo.value = 0;
+		abs_slot.absinfo.minimum = 0;
+		abs_slot.absinfo.maximum = 15;
+		abs_slot.absinfo.resolution = 0;
+		abs_slot.absinfo.fuzz = 0;
+		abs_slot.absinfo.flat = 0;
+		if (ioctl(fd, UI_ABS_SETUP, &abs_slot) < 0)
+			goto bail_out;
+
+		struct uinput_abs_setup abs_track;
+		abs_track.code = ABS_MT_TRACKING_ID;
+		abs_track.absinfo.value = 0;
+		abs_track.absinfo.minimum = 0;
+		abs_track.absinfo.maximum = 0xffff;
+		abs_track.absinfo.resolution = 0;
+		abs_track.absinfo.fuzz = 0;
+		abs_track.absinfo.flat = 0;
+		if (ioctl(fd, UI_ABS_SETUP, &abs_track) < 0)
+			goto bail_out;
+
+		struct uinput_abs_setup abs_touch_major;
+		abs_touch_major.code = ABS_MT_TOUCH_MAJOR;
+		abs_touch_major.absinfo.value = 0;
+		abs_touch_major.absinfo.minimum = 0;
+		abs_touch_major.absinfo.maximum = 255 << 2;
+		abs_touch_major.absinfo.resolution = 0;
+		abs_touch_major.absinfo.fuzz = 4;
+		abs_touch_major.absinfo.flat = 0;
+		if (ioctl(fd, UI_ABS_SETUP, &abs_touch_major) < 0)
+			goto bail_out;
+
+		struct uinput_abs_setup abs_touch_minor;
+		abs_touch_minor.code = ABS_MT_TOUCH_MINOR;
+		abs_touch_minor.absinfo.value = 0;
+		abs_touch_minor.absinfo.minimum = 0;
+		abs_touch_minor.absinfo.maximum = 255 << 2;
+		abs_touch_minor.absinfo.resolution = 0;
+		abs_touch_minor.absinfo.fuzz = 4;
+		abs_touch_minor.absinfo.flat = 0;
+		if (ioctl(fd, UI_ABS_SETUP, &abs_touch_minor) < 0)
+			goto bail_out;
+
+		struct uinput_abs_setup abs_orientation;
+		abs_orientation.code = ABS_MT_ORIENTATION;
+		abs_orientation.absinfo.value = 0;
+		abs_orientation.absinfo.minimum = -31;
+		abs_orientation.absinfo.maximum = 32;
+		abs_orientation.absinfo.resolution = 0;
+		abs_orientation.absinfo.fuzz = 1;
+		abs_orientation.absinfo.flat = 0;
+		if (ioctl(fd, UI_ABS_SETUP, &abs_orientation) < 0)
+			goto bail_out;
+	} else {
+		/* Advertise events and axes */
+		if (ioctl(fd, UI_SET_EVBIT, EV_SYN) < 0 ||
+		    ioctl(fd, UI_SET_EVBIT, EV_KEY) < 0 ||
+		    ioctl(fd, UI_SET_EVBIT, EV_REL) < 0 ||
+		    ioctl(fd, UI_SET_RELBIT, REL_X) < 0 ||
+		    ioctl(fd, UI_SET_RELBIT, REL_Y) < 0 ||
+		    (p->has_wheel && ioctl(fd, UI_SET_RELBIT, REL_WHEEL) < 0) ||
+		    (p->has_hwheel && ioctl(fd, UI_SET_RELBIT, REL_HWHEEL) < 0) ||
+		    ioctl(fd, UI_SET_PROPBIT, INPUT_PROP_POINTER) < 0)
+			goto bail_out;
+
+		/* Advertise mouse buttons */
+		for (i = 0; i < nitems(mbuttons); i++)
+			if (ioctl(fd, UI_SET_KEYBIT, mbuttons[i]) < 0)
+				goto bail_out;
+	}
 
 	if (ioctl(fd, UI_DEV_CREATE) >= 0)
 		return (fd); /* SUCCESS */
@@ -472,6 +600,17 @@ uinput_write_event(int32_t fd, uint16_t type, uint16_t code, int32_t value)
 	return (write(fd, &ie, sizeof(ie)));
 }
 
+
+int32_t
+uinput_rep_sync(int32_t fd) {
+	assert(fd >= 0);
+
+	if (uinput_write_event(fd, EV_SYN, SYN_REPORT, 0) < 0)
+		return (-1);
+
+	return (0);
+}
+
 int32_t
 uinput_rep_mouse(int32_t fd, int32_t x, int32_t y, int32_t z, int32_t t,
     int32_t buttons, int32_t obuttons)
@@ -505,6 +644,89 @@ uinput_rep_mouse(int32_t fd, int32_t x, int32_t y, int32_t z, int32_t t,
 
 	return (0);
 }
+
+/*
+ * Translate and report trackpad multi-touch events
+ */
+int32_t
+uinput_rep_multi_touch(int32_t fd, int32_t id, int32_t x, int32_t y,
+	int32_t orientation, int32_t touch_major, int32_t touch_minor, int32_t state)
+{
+	assert(fd >= 0);
+
+	if (uinput_write_event(fd, EV_ABS, ABS_MT_SLOT, id) < 0)
+		return (-1);
+
+	if (state != 0) {
+		if (uinput_write_event(fd, EV_ABS, ABS_MT_TRACKING_ID, id) < 0 ||
+		    uinput_write_event(fd, EV_ABS, ABS_MT_TOUCH_MAJOR, touch_major << 2) < 0 ||
+		    uinput_write_event(fd, EV_ABS, ABS_MT_TOUCH_MINOR, touch_minor << 2) < 0 ||
+		    uinput_write_event(fd, EV_ABS, ABS_MT_ORIENTATION, -orientation) < 0 ||
+		    uinput_write_event(fd, EV_ABS, ABS_MT_POSITION_X, x) < 0 ||
+		    uinput_write_event(fd, EV_ABS, ABS_MT_POSITION_Y, y) < 0)
+			return (-1);
+	} else {
+		if (uinput_write_event(fd, EV_ABS, ABS_MT_TRACKING_ID, -1) < 0)
+			return (-1);
+	}
+
+	return (0);
+}
+
+/*
+ * Translate and report trackpad single-touch events
+ */
+int32_t
+uinput_rep_single_touch(int32_t fd, int32_t x, int32_t y, int32_t state)
+{
+	assert(fd >= 0);
+
+	if (uinput_write_event(fd, EV_ABS, ABS_X, x) < 0 ||
+	    uinput_write_event(fd, EV_ABS, ABS_Y, y) < 0 ||
+	    uinput_write_event(fd, EV_KEY, BTN_TOUCH, state != 0) < 0)
+		return (-1);
+
+	return (0);
+}
+
+/*
+ * Translate and report trackpad finger count events
+ */
+static uint16_t fngmap[] = {
+	BTN_TOOL_FINGER,
+	BTN_TOOL_DOUBLETAP,
+	BTN_TOOL_TRIPLETAP,
+	BTN_TOOL_QUADTAP,
+	BTN_TOOL_QUINTTAP,
+};
+
+int32_t
+uinput_rep_fingers(int32_t fd, int32_t nfingers)
+{
+	assert(fd >= 0);
+
+	for (int i = 0; i < 5; i++)
+		if (uinput_write_event(fd, EV_KEY, fngmap[i], nfingers == i + 1) < 0)
+			return (-1);
+
+	return (0);
+}
+
+/*
+ * Translate and report trackpad (clickpad) click events
+ */
+int32_t
+uinput_rep_click(int32_t fd, int32_t clicked)
+{
+	assert(fd >= 0);
+
+	if (uinput_write_event(fd, EV_KEY, BTN_LEFT, clicked) < 0)
+		return (-1);
+
+	return (0);
+}
+
+
 
 /*
  * Translate and report keyboard page key events
