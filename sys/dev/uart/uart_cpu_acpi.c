@@ -182,6 +182,10 @@ uart_cpu_acpi_spcr(int devtype, struct uart_devinfo *di)
 		    (int)spcr->BaudRate);
 		goto out;
 	}
+	di->pci_info.vendor = spcr->PciVendorId;
+	di->pci_info.device = spcr->PciDeviceId;
+	di->pci_info.bus = spcr->PciBus;
+	di->pci_info.slot = spcr->PciDevice;
 
 	/* Apply device tweaks. */
 	if ((cd->cd_quirks & UART_F_IGNORE_SPCR_REGSHFT) ==

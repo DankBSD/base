@@ -42,6 +42,7 @@ __FBSDID("$FreeBSD$");
 
 #include <dev/uart/uart.h>
 #include <dev/uart/uart_bus.h>
+#include <dev/uart/uart_cpu.h>
 
 #define	DEFAULT_RCLK	1843200
 
@@ -190,10 +191,13 @@ uart_pci_match(device_t dev, const struct pci_id *id)
 	return ((id->vendor == vendor && id->device == device) ? id : NULL);
 }
 
+extern SLIST_HEAD(uart_devinfo_list, uart_devinfo) uart_sysdevs;
+
 static int
 uart_pci_probe(device_t dev)
 {
 	struct uart_softc *sc;
+	struct uart_devinfo *sysdev;
 	const struct pci_id *id;
 	int result;
 
@@ -208,6 +212,16 @@ uart_pci_probe(device_t dev)
 	return (ENXIO);
 
  match:
+	SLIST_FOREACH(sysdev, &uart_sysdevs, next) {
+		if (sysdev->pci_info.vendor == pci_get_vendor(dev)
+			&& sysdev->pci_info.device == pci_get_device(dev)
+			&& sysdev->pci_info.bus == pci_get_bus(dev)
+			&& sysdev->pci_info.slot == pci_get_slot(dev)) {
+			sc->sc_sysdev = sysdev;
+			sysdev->bas.rclk = sc->sc_bas.rclk;
+		}
+	}
+
 	result = uart_bus_probe(dev, id->regshft, 0, id->rclk, id->rid, 0, 0);
 	/* Bail out on error. */
 	if (result > 0)

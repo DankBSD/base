@@ -53,6 +53,16 @@ extern bus_space_tag_t uart_bus_space_io;
 extern bus_space_tag_t uart_bus_space_mem;
 
 /*
+ * PCI bus address from the ACPI SPCR table.
+ */
+struct uart_pci_info {
+	uint16_t	vendor;
+	uint16_t	device;
+	uint8_t		bus;
+	uint8_t		slot;
+};
+
+/*
  * Console and debug port device info.
  */
 struct uart_devinfo {
@@ -72,6 +82,7 @@ struct uart_devinfo {
 	void	*cookie;		/* Type dependent use. */
 	struct mtx *hwmtx;
 	struct uart_softc *sc;		/* valid only from start of attach */
+	struct uart_pci_info pci_info;
 };
 
 int uart_cpu_eqres(struct uart_bas *, struct uart_bas *);
