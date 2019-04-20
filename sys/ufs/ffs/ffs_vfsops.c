@@ -1831,7 +1831,7 @@ ffs_sync(mp, waitfor)
 	td = curthread;
 	fs = ump->um_fs;
 	if (fs->fs_fmod != 0 && fs->fs_ronly != 0 && ump->um_fsckpid == 0)
-		panic("%s: ffs_sync: modification on read-only filesystem",
+		printf("%s: ffs_sync: modification on read-only filesystem",
 		    fs->fs_fsmnt);
 	if (waitfor == MNT_LAZY) {
 		if (!rebooting)
