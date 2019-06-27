@@ -52,6 +52,7 @@ __FBSDID("$FreeBSD$");
 #include <efi.h>
 #include <efilib.h>
 #include <efichar.h>
+#include <efirng.h>
 
 #include <uuid.h>
 
@@ -1178,6 +1179,45 @@ main(int argc, CHAR16 *argv[])
 	interact();			/* doesn't return */
 
 	return (EFI_SUCCESS);		/* keep compiler happy */
+}
+
+COMMAND_SET(efi_seed_entropy, "efi-seed-entropy", "try to get entropy from the EFI RNG", command_seed_entropy);
+
+static int
+command_seed_entropy(int argc, char *argv[])
+{
+	EFI_STATUS status;
+	EFI_RNG_PROTOCOL *rng;
+	vm_offset_t laddr;
+	unsigned int size = 2048;
+
+	if (argc > 1) {
+	    size = strtol(argv[1], NULL, 0);
+	}
+
+	status = BS->LocateProtocol(&rng_guid, NULL, (VOID **)&rng);
+	if (status != EFI_SUCCESS) {
+		command_errmsg = "RNG protocol not found";
+		return (CMD_ERROR);
+	}
+
+	/* We can't load first */
+	if ((file_findfile(NULL, NULL)) == NULL) {
+		command_errmsg = "can't load file before kernel";
+		return (CMD_ERROR);
+	}
+
+	laddr = mod_loadraw_start("efi_rng_seed");
+
+	status = rng->GetRNG(rng, NULL, size, (UINT8 *)efi_translate(laddr));
+	if (status != EFI_SUCCESS) {
+		command_errmsg = "GetRNG failed";
+		return (CMD_ERROR);
+	}
+
+	laddr += size;
+	mod_loadraw_finish(laddr, "efi_rng_seed", "boot_entropy_cache", 1);
+	return (CMD_OK);
 }
 
 COMMAND_SET(poweroff, "poweroff", "power off the system", command_poweroff);

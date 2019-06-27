@@ -251,6 +251,9 @@ int mod_load(char *name, struct mod_depend *verinfo, int argc, char *argv[]);
 int mod_loadkld(const char *name, int argc, char *argv[]);
 void unload(void);
 
+vm_offset_t		mod_loadraw_start(char *name);
+struct preloaded_file *mod_loadraw_finish(vm_offset_t laddr, char *name, char *type, int insert);
+
 struct preloaded_file *file_alloc(void);
 struct preloaded_file *file_findfile(const char *name, const char *type);
 struct file_metadata *file_findmetadata(struct preloaded_file *fp, int type);

@@ -772,12 +772,8 @@ file_loadraw(const char *fname, char *type, int insert)
 #endif
 #endif
 
-	if (archsw.arch_loadaddr != NULL)
-		loadaddr = archsw.arch_loadaddr(LOAD_RAW, name, loadaddr);
+	laddr = mod_loadraw_start(name);
 
-	printf("%s ", name);
-
-	laddr = loadaddr;
 	for (;;) {
 		/* read in 4k chunks; size is not really important */
 		got = archsw.arch_readin(VECTX_HANDLE(fd), laddr, 4096);
@@ -796,6 +792,28 @@ file_loadraw(const char *fname, char *type, int insert)
 		laddr += got;
 	}
 
+	fp = mod_loadraw_finish(laddr, name, type, insert);
+	close(fd);
+
+	return (fp);
+}
+
+vm_offset_t
+mod_loadraw_start(char *name)
+{
+	if (archsw.arch_loadaddr != NULL)
+		loadaddr = archsw.arch_loadaddr(LOAD_RAW, name, loadaddr);
+
+	printf("%s ", name);
+
+	return (loadaddr);
+}
+
+struct preloaded_file *
+mod_loadraw_finish(vm_offset_t laddr, char *name, char *type, int insert)
+{
+	struct preloaded_file	*fp;
+
 	printf("size=%#jx\n", (uintmax_t)(laddr - loadaddr));
 #ifdef LOADER_VERIEXEC_VECTX
 	verror = vectx_close(vctx, VE_MUST, __func__);
@@ -813,7 +831,6 @@ file_loadraw(const char *fname, char *type, int insert)
 		snprintf(command_errbuf, sizeof (command_errbuf),
 		    "no memory to load %s", name);
 		free(name);
-		close(fd);
 		return (NULL);
 	}
 	fp->f_name = name;
@@ -828,7 +845,6 @@ file_loadraw(const char *fname, char *type, int insert)
 		snprintf(command_errbuf, sizeof (command_errbuf),
 		    "no memory to load %s", name);
 		free(name);
-		close(fd);
 		return (NULL);
 	}
 	/* recognise space consumption */
@@ -837,8 +853,8 @@ file_loadraw(const char *fname, char *type, int insert)
 	/* Add to the list of loaded files */
 	if (insert != 0)
 		file_insert_tail(fp);
-	close(fd);
-	return(fp);
+
+	return (fp);
 }
 
 /*

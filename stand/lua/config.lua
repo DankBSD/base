@@ -728,6 +728,13 @@ function config.reload(file)
 	hook.runAll("config.reloaded")
 end
 
+local function loadEntropy()
+	if loader.getenv("entropy_efi_rng"):lower() == "yes" then
+		loader.perform("efi-seed-entropy")
+	end
+	return true
+end
+
 function config.loadelf()
 	local xen_kernel = loader.getenv('xen_kernel')
 	local kernel = config.kernel_selected or config.kernel_loaded
@@ -747,7 +754,7 @@ function config.loadelf()
 	hook.runAll("kernel.loaded")
 
 	print(MSG_MODLOADING)
-	status = loadModule(modules, not config.verbose)
+	status = loadModule(modules, not config.verbose) and loadEntropy()
 	hook.runAll("modules.loaded")
 	return status
 end
