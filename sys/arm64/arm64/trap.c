@@ -466,7 +466,7 @@ do_el0_sync(struct thread *td, struct trapframe *frame)
 	exception = ESR_ELx_EXCEPTION(esr);
 	switch (exception) {
 	case EXCP_INSN_ABORT_L:
-		far = READ_SPECIALREG(far_el1);
+		far = READ_SPECIALREG(far_el1) & 0xffffffffffff;
 
 		/*
 		 * Userspace may be trying to train the branch predictor to
@@ -483,7 +483,7 @@ do_el0_sync(struct thread *td, struct trapframe *frame)
 	case EXCP_DATA_ABORT_L:
 	case EXCP_DATA_ABORT:
 	case EXCP_WATCHPT_EL0:
-		far = READ_SPECIALREG(far_el1);
+		far = READ_SPECIALREG(far_el1) & 0xffffffffffff;
 		break;
 	}
 	intr_enable();
