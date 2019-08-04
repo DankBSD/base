@@ -11,7 +11,6 @@ SUBDIR= cat \
 	date \
 	dd \
 	df \
-	domainname \
 	echo \
 	ed \
 	expr \

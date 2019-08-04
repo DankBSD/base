@@ -5,11 +5,9 @@
 
 .PATH:	${.CURDIR}/../../sys/dev/usb
 
-FILES=	ascii birthtoken bsd-family-tree committers-doc.dot committers-ports.dot \
-	committers-src.dot flowers init.ee \
+FILES=	ascii \
 	iso3166 iso639 latin1 mdoc.template operator pci_vendors \
-	scsi_modes \
-	organization.dot
+	scsi_modes
 
 FILESDIR=	${BINDIR}/misc
 

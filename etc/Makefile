@@ -141,7 +141,7 @@ distrib-dirs: ${MTREES:N/*} distrib-cleanup .PHONY
 	${ECHO} ${MTREE_CMD} -deU ${MTREE_FSCHG} \
 	    ${MTREE_FOLLOWS_SYMLINKS} -f $$m -p $$d; \
 	${MTREE_FILTER} $$m | \
-	${MTREE_CMD} -deU ${MTREE_FSCHG} ${MTREE_FOLLOWS_SYMLINKS} \
+	${MTREE_CMD} -eU ${MTREE_FSCHG} ${MTREE_FOLLOWS_SYMLINKS} \
 	    -p $$d
 .endfor
 .if defined(NO_ROOT)

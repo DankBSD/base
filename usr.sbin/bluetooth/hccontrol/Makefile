@@ -2,7 +2,6 @@
 # $FreeBSD$
 
 PACKAGE=	bluetooth
-CONFS=		bluetooth.device.conf
 CONFSDIR=	/etc/defaults
 PROG=		hccontrol
 MAN=		hccontrol.8

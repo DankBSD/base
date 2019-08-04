@@ -5,8 +5,7 @@
 
 /set type=dir uname=root gname=wheel mode=0755
 .
-    bin
-    ..
+    bin             type=link link=usr/bin
     boot
         defaults
         ..
@@ -38,8 +37,6 @@
     dev             mode=0555
     ..
     etc
-        X11
-        ..
         authpf
         ..
         autofs
@@ -62,29 +59,11 @@
         ..
         mtree
         ..
-        newsyslog.conf.d
-        ..
-        ntp             mode=0700
-        ..
         pam.d
-        ..
-        periodic
-            daily
-            ..
-            monthly
-            ..
-            security
-            ..
-            weekly
-            ..
         ..
         pkg
         ..
         ppp
-        ..
-        rc.conf.d
-        ..
-        rc.d
         ..
         security
         ..
@@ -98,6 +77,8 @@
             compatibility.d
             ..
         ..
+    ..
+    home
     ..
     lib
         casper
@@ -117,14 +98,13 @@
     ..
     net
     ..
-    proc            mode=0555
+    opt
     ..
-    rescue
+    proc            mode=0555
     ..
     root            mode=0750
     ..
-    sbin
-    ..
+    sbin            type=link link=usr/sbin
     tmp             mode=01777
     ..
     usr

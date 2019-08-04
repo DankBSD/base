@@ -50,32 +50,32 @@ __<bsd.opts.mk>__:
 
 __DEFAULT_YES_OPTIONS = \
     ASSERT_DEBUG \
+    BIND_NOW \
     DEBUG_FILES \
     DOCCOMPRESS \
     INCLUDES \
+    INIT_ALL_ZERO \
     INSTALLLIB \
     KERBEROS \
     MAKE_CHECK_USE_SANDBOX \
     MAN \
     MANCOMPRESS \
-    NIS \
     NLS \
     OPENSSH \
-    PROFILE \
     SSP \
-    TESTS \
     TOOLCHAIN \
     WARNS \
     WERROR
 
 __DEFAULT_NO_OPTIONS = \
-    BIND_NOW \
     CCACHE_BUILD \
     CTF \
     INIT_ALL_PATTERN \
-    INIT_ALL_ZERO \
     INSTALL_AS_USER \
+    NIS \
+    PROFILE \
     RETPOLINE \
+    TESTS \
     STALE_STAGED
 
 __DEFAULT_DEPENDENT_OPTIONS = \

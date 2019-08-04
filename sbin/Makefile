@@ -11,9 +11,7 @@ SUBDIR=adjkerntz \
 	ddb \
 	devfs \
 	devmatch \
-	dhclient \
 	dmesg \
-	dump \
 	dumpfs \
 	dumpon \
 	etherswitchcfg \
@@ -23,7 +21,6 @@ SUBDIR=adjkerntz \
 	fsck_msdosfs \
 	fsdb \
 	fsirand \
-	gbde \
 	geom \
 	ggate \
 	growfs \
@@ -51,14 +48,11 @@ SUBDIR=adjkerntz \
 	newfs \
 	newfs_msdos \
 	nfsiod \
-	nos-tun \
 	pfilctl \
 	ping \
-	rcorder \
 	reboot \
 	recoverdisk \
 	resolvconf \
-	restore \
 	route \
 	savecore \
 	setkey \

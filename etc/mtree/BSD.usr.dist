@@ -34,32 +34,6 @@
         ..
     ..
     lib
-        clang
-            11.0.1
-                include
-                    cuda_wrappers
-                    ..
-                    fuzzer
-                    ..
-                    openmp_wrappers
-                    ..
-                    ppc_wrappers
-                    ..
-                    profile
-                    ..
-                    sanitizer
-                    ..
-                    xray
-                    ..
-                ..
-                lib
-                    freebsd
-                    ..
-                ..
-            ..
-        ..
-        compat
-        ..
         dtrace
         ..
         engines
@@ -220,10 +194,6 @@
             kyua             tags=package=tests
             ..
             legal
-            ..
-            llvm
-                clang
-                ..
             ..
             ncurses
             ..

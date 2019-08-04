@@ -87,7 +87,7 @@ MAN+=	autofs.5
 .endif
 
 .if ${MK_BLUETOOTH} != "no"
-MAN+=	bluetooth.device.conf.5 \
+MAN+=	\
 	bluetooth.hosts.5 \
 	bluetooth.protocols.5
 .endif

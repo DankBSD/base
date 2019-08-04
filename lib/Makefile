@@ -101,7 +101,7 @@ SUBDIR=	${SUBDIR_BOOTSTRAP} \
 	libulog \
 	libutil \
 	${_libvgl} \
-	libwrap \
+	${_libwrap} \
 	libxo \
 	libz \
 	libzstd \
@@ -191,9 +191,11 @@ SUBDIR.${MK_GOOGLETEST}+=	googletest
 SUBDIR.${MK_NETGRAPH}+=	libnetgraph
 SUBDIR.${MK_NIS}+=	libypclnt
 
-.if ${MACHINE_CPUARCH} == "i386" || ${MACHINE_CPUARCH} == "amd64"
-_libvgl=	libvgl
-.endif
+# .if ${MACHINE_CPUARCH} == "i386" || ${MACHINE_CPUARCH} == "amd64"
+# _libvgl=	libvgl
+# .endif
+
+SUBDIR.${MK_TCP_WRAPPERS}+=	libwrap
 
 .if ${MACHINE_CPUARCH} == "aarch64"
 SUBDIR.${MK_PMC}+=	libopencsd
