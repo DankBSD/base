@@ -71,7 +71,7 @@ dmar_qi_seq_processed(const struct dmar_unit *unit,
 	     pseq->seq <= unit->inv_waitd_seq_hw));
 }
 
-static int
+int
 dmar_enable_qi(struct dmar_unit *unit)
 {
 	int error;
@@ -84,7 +84,7 @@ dmar_enable_qi(struct dmar_unit *unit)
 	return (error);
 }
 
-static int
+int
 dmar_disable_qi(struct dmar_unit *unit)
 {
 	int error;

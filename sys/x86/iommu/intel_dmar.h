@@ -182,6 +182,15 @@ struct dmar_unit {
 	struct iommu_map_entries_tailq tlb_flush_entries;
 	struct task qi_task;
 	struct taskqueue *qi_taskqueue;
+
+	/* Saved state for suspend/resume */
+	struct {
+	    uint32_t fectl;
+	    uint32_t fedata;
+	    uint32_t feaddr;
+	    uint32_t feuaddr;
+	} state;
+
 };
 
 #define	DMAR_LOCK(dmar)		mtx_lock(&(dmar)->iommu.lock)
@@ -245,6 +254,8 @@ int dmar_init_fault_log(struct dmar_unit *unit);
 void dmar_fini_fault_log(struct dmar_unit *unit);
 
 int dmar_qi_intr(void *arg);
+int dmar_enable_qi(struct dmar_unit *unit);
+int dmar_disable_qi(struct dmar_unit *unit);
 void dmar_enable_qi_intr(struct dmar_unit *unit);
 void dmar_disable_qi_intr(struct dmar_unit *unit);
 int dmar_init_qi(struct dmar_unit *unit);

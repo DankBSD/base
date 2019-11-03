@@ -559,6 +559,17 @@ dmar_detach(device_t dev)
 static int
 dmar_suspend(device_t dev)
 {
+	struct dmar_unit *unit = device_get_softc(dev);
+
+	// XXX flush_all ??
+
+	DMAR_LOCK(unit);
+	dmar_disable_translation(unit);
+	unit->state.fectl = dmar_read4(unit, DMAR_FECTL_REG);
+	unit->state.fedata = dmar_read4(unit, DMAR_FEDATA_REG);
+	unit->state.feaddr = dmar_read4(unit, DMAR_FEADDR_REG);
+	unit->state.feuaddr = dmar_read4(unit, DMAR_FEUADDR_REG);
+	DMAR_UNLOCK(unit);
 
 	return (0);
 }
@@ -566,8 +577,49 @@ dmar_suspend(device_t dev)
 static int
 dmar_resume(device_t dev)
 {
+	struct dmar_unit *unit = device_get_softc(dev);
+	int error;
 
-	/* XXXKIB */
+	DMAR_LOCK(unit);
+
+	if (DMAR_HAS_QI(unit)) {
+		dmar_disable_qi(unit);
+		dmar_enable_qi(unit);
+	}
+
+/* 	error = dmar_inv_ctx_glob(unit); */
+/* 	error = dmar_inv_iotlb_glob(unit); */
+
+/* 	if (error != 0) { */
+/* 		DMAR_UNLOCK(unit); */
+/* 		dmar_release_resources(dev, unit); */
+/* 		return (error); */
+/* 	} */
+
+	error = dmar_flush_write_bufs(unit);
+
+	error = dmar_load_root_entry_ptr(unit);
+
+	if (DMAR_HAS_QI(unit)) {
+	    dmar_qi_invalidate_ctx_glob_locked(unit);
+	    dmar_qi_invalidate_iotlb_glob_locked(unit);
+	} else {
+	    // XXX domain_flush_iotlb_sync ??
+	    // XXX ctx ??????
+	}
+
+	dmar_enable_translation(unit);
+
+	// XXX disable_protect_mem_regions - we don't use DMAR_PMEN_*??
+
+	dmar_write4(unit, DMAR_FECTL_REG, unit->state.fectl);
+	dmar_write4(unit, DMAR_FEDATA_REG, unit->state.fedata);
+	dmar_write4(unit, DMAR_FEADDR_REG, unit->state.feaddr);
+	dmar_write4(unit, DMAR_FEUADDR_REG, unit->state.feuaddr);
+
+
+	DMAR_UNLOCK(unit);
+
 	return (0);
 }
 
