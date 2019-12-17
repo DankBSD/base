@@ -1621,7 +1621,7 @@ pmc_process_csw_out(struct thread *td)
 			pcd->pcd_read_pmc(cpu, adjri, &newvalue);
 
 			if (mode == PMC_MODE_TS) {
-				PMCDBG3(CSW,SWO,1,"cpu=%d ri=%d val=%jd (samp)",
+				PMCDBG3(CSW,SWO,2,"cpu=%d ri=%d val=%jd (samp)",
 				    cpu, ri, newvalue);
 
 				if (pt == NULL)
@@ -1643,8 +1643,16 @@ pmc_process_csw_out(struct thread *td)
 				 * once we have thoroughly tested that we
 				 * don't hit the above assert.
 				 */
-				if (pt != NULL)
+				if (pt != NULL) {
 					pt->pt_pmcs[ri].pt_pmcval = newvalue;
+					/* If the pmc has overflowed
+					 * reload the count discountung
+					 * the overflow
+					 * */
+					if (newvalue > pm->pm_sc.pm_reloadcount)
+						pt->pt_pmcs[ri].pt_pmcval +=
+						    pm->pm_sc.pm_reloadcount;
+				}
 				else {
 					/*
 					 * For sampling process-virtual PMCs,
@@ -1668,7 +1676,7 @@ pmc_process_csw_out(struct thread *td)
 			} else {
 				tmp = newvalue - PMC_PCPU_SAVED(cpu,ri);
 
-				PMCDBG3(CSW,SWO,1,"cpu=%d ri=%d tmp=%jd (count)",
+				PMCDBG3(CSW,SWO,2,"cpu=%d ri=%d tmp=%jd (count)",
 				    cpu, ri, tmp);
 
 				/*
