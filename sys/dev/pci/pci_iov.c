@@ -673,6 +673,34 @@ pci_iov_enumerate_vfs(struct pci_devinfo *dinfo, const nvlist_t *config,
 	bus_generic_attach(bus);
 }
 
+static bool
+pci_iov_vf_bus_in_range(device_t bus, uint8_t vf_bus)
+{
+	device_t pdev;
+	uint8_t secbus, subbus;
+	struct pci_devinfo *pdinfo;
+
+	pdev = bus;
+	while (pdev != NULL) {
+		pdinfo = (struct pci_devinfo *)device_get_ivars(pdev);
+		if ((pdinfo != NULL) &&
+		    ((pdinfo->cfg.hdrtype & PCIM_HDRTYPE) == PCIM_HDRTYPE_BRIDGE)) {
+			secbus = pdinfo->cfg.bridge.br_secbus;
+			subbus = pdinfo->cfg.bridge.br_subbus;
+			if (vf_bus >= secbus && vf_bus <= subbus)
+				return (true);
+			else if (device_get_parent(pdev) == NULL) {
+				device_printf(pdev, "%d is not in allocated bus range: %u-%u\n",
+				    vf_bus, secbus, subbus);
+				break;
+			}
+		}
+		pdev = device_get_parent(pdev);
+	}
+
+	return (false);
+}
+
 static int
 pci_iov_config(struct cdev *cdev, struct pci_iov_arg *arg)
 {
@@ -725,19 +753,21 @@ pci_iov_config(struct cdev *cdev, struct pci_iov_arg *arg)
 		goto out;
 	iov_inited = 1;
 
-	IOV_WRITE(dinfo, PCIR_SRIOV_NUM_VFS, num_vfs, 2);
-
 	rid_off = IOV_READ(dinfo, PCIR_SRIOV_VF_OFF, 2);
 	rid_stride = IOV_READ(dinfo, PCIR_SRIOV_VF_STRIDE, 2);
 
 	first_rid = pci_get_rid(dev) + rid_off;
 	last_rid = first_rid + (num_vfs - 1) * rid_stride;
 
-	/* We don't yet support allocating extra bus numbers for VFs. */
-	if (pci_get_bus(dev) != PCI_RID2BUS(last_rid)) {
+	/* TODO: Check parent PCI bridges to see if the current VF bus number
+	 * has already been allocated; we don't yet support allocating extra
+	 * bus numbers for VFs.
+	 */
+	if (!pci_iov_vf_bus_in_range(bus, PCI_RID2BUS(last_rid))) {
 		device_printf(dev, "not enough PCIe bus numbers for VFs\n");
 		error = ENOSPC;
 		goto out;
+
 	}
 
 	iov_ctl = IOV_READ(dinfo, PCIR_SRIOV_CTL, 2);
@@ -757,6 +787,8 @@ pci_iov_config(struct cdev *cdev, struct pci_iov_arg *arg)
 	iov_ctl = IOV_READ(dinfo, PCIR_SRIOV_CTL, 2);
 	iov_ctl |= PCIM_SRIOV_VF_EN | PCIM_SRIOV_VF_MSE;
 	IOV_WRITE(dinfo, PCIR_SRIOV_CTL, iov_ctl, 2);
+
+	IOV_WRITE(dinfo, PCIR_SRIOV_NUM_VFS, num_vfs, 2);
 
 	/* Per specification, we must wait 100ms before accessing VFs. */
 	pause("iov", roundup(hz, 10));
