@@ -74,7 +74,7 @@ u_int ncyls = 0;
 u_int nheads = 1;
 u_int nsecs = 1;
 u_int secsz = 512;
-u_int blksz = 0;
+u_int blksz = 4096;
 uint32_t active_partition = 0;
 
 static void

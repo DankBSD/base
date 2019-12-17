@@ -78,6 +78,12 @@ mkimg_rebase()
     baseline=$image.hex
     update=yes
 
+    if [ x"$image" != x"${image%raw}" ]; then
+        mddev=$(mdconfig -f "$image")
+        gpart show "$mddev" > "${image}.gpart"
+        mdconfig -d -u "$mddev"
+    fi
+
     if test -f $baseline; then
 	tmpfile=_tmp-baseline
 	sed -e '/^#.*/D' < $baseline > $tmpfile

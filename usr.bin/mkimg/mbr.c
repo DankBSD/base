@@ -55,7 +55,7 @@ mbr_metadata(u_int where, lba_t blk)
 {
 
 	blk += (where == SCHEME_META_IMG_START) ? 1 : 0;
-	return (round_track(blk));
+	return (round_block(blk));
 }
 
 static void
