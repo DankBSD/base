@@ -1,0 +1,111 @@
+include MINIMAL-NODEBUG
+
+ident   DANK
+
+options 	VIMAGE			# Subsystem virtualization, e.g. VNET
+options 	RACCT			# Resource accounting framework
+options 	RCTL			# Resource limits
+options 	MD_ROOT			# MD is a potential root device
+options 	PCI_HP			# PCI-Express native HotPlug
+options 	PCI_IOV			# PCI SR-IOV support
+options 	BWN_GPL_PHY # Broadcom Wi-Fi GPL stuff, we're building as separate module only
+options 	NVME_USE_NVD=0	# prefer the cam(4) based nda(4) driver
+options 	EKCD			# Support for encrypted kernel dumps
+options 	GZIO			# gzip-compressed kernel and user dumps
+options 	ZSTDIO			# zstd-compressed kernel and user dumps (and geom_uzip)
+options 	DEBUGNET		# debugnet networking
+options 	NETDUMP			# netdump(4) client support
+options 	NETGDB			# netgdb(4) client support
+options 	TEKEN_UTF8		# UTF-8 output handling
+options 	VT_TWOBUTTON_MOUSE	# Use right mouse button to paste
+options 	GEOM_LABEL		# Provides labelization
+options 	CAM_IOSCHED_DYNAMIC
+options 	CAM_IO_STATS
+options 	SCHED_STATS
+options 	RANDOM_FENESTRASX
+device		md			# Memory "disks"
+
+makeoptions	WITH_EXTRA_TCP_STACKS=1
+options 	ROUTE_MPATH		# Multipath routing support
+options 	TCP_BLACKBOX		# Enhanced TCP event logging
+options 	TCP_HHOOK		# hhook(9) framework for TCP
+options 	TCP_RFC7413		# TCP Fast Open
+options 	TCPHPTS
+options 	KERN_TLS		# TLS transmit offload
+nooptions SCTP			# Stream Control Transmission Protocol
+device		netmap			# netmap(4) support
+
+# WiFi flags
+options 	IEEE80211_SUPPORT_MESH	# enable 802.11s draft support
+options 	AH_AR5416_INTERRUPT_MITIGATION # AR5416 interrupt mitigation
+options 	ATH_ENABLE_11N		# Enable 802.11n support for AR5416 and later
+
+# ATA controllers
+device		ahci			# AHCI-compatible SATA controllers
+device		ata			# Legacy ATA/SATA controllers
+
+# SCSI Controllers
+device		isci			# Intel C600 SAS controller
+device		pvscsi			# VMware PVSCSI
+
+# ATA/SCSI peripherals
+device		scbus			# SCSI bus (required for ATA/SCSI)
+device		ch			# SCSI media changers
+device		da			# Direct Access (disks)
+device		sa			# Sequential Access (tape etc)
+device		cd			# CD
+device		pass			# Passthrough device (direct ATA/SCSI access)
+device		ses			# Enclosure Services (SES and SAF-TE)
+device		ctl			# CAM Target Layer
+
+# NVM Express (NVMe) support
+device		nvme			# base NVMe driver
+device		nvd			# expose NVMe namespaces as disks, depends on nvme
+
+# Intel Volume Management Device (VMD) support
+device		vmd			# base VMD device
+device		vmd_bus			# bus for VMD children
+
+# USB support
+options 	USB_DEBUG		# enable debug msgs
+device		uhci			# UHCI PCI->USB interface
+device		ohci			# OHCI PCI->USB interface
+device		ehci			# EHCI PCI->USB interface (USB 2.0)
+device		xhci			# XHCI PCI->USB interface (USB 3.0)
+device		usb			# USB Bus (required)
+device		umass			# Disks/Mass storage - Requires scbus and da
+
+# VirtIO support
+device		virtio			# Generic VirtIO bus (required)
+device		virtio_pci		# VirtIO PCI device
+device		vtnet			# VirtIO Ethernet device
+device		virtio_blk		# VirtIO Block device
+device		virtio_scsi		# VirtIO SCSI device
+device		virtio_balloon		# VirtIO Memory Balloon device
+device		virtio_random	# VirtIO Entropy device
+device		virtio_console	# VirtIO Console device
+
+# HyperV drivers and enhancement support
+device		hyperv			# HyperV drivers 
+
+# HID support
+options 	HID_DEBUG
+options 	IICHID_DEBUG
+options 	IICHID_SAMPLING
+options 	HIDRAW_MAKE_UHID_ALIAS
+device		hid			# Generic HID support
+
+# Apparently this is intended for file shares, and discouraged for some reason
+# (somehow security problems????? on multi-user systems)
+# The real use case is doing it on $XDG_RUNTIME_DIR to prevent
+# `doas kak` -> `kak` -> `Fatal error: unable to bind listen socket '/var/run/user/1001/kakoune/31916': Permission denied`
+options 	SUIDDIR
+
+options INIT_PATH=/usr/sbin/runit-init
+
+nooptions VESA
+nodevice sc
+nodevice splash
+
+makeoptions  WITHOUT_MODULES="aout s3 videomode syscons splash speaker vpo pccard cardbus cbb cmx exca rl if_ndis ndis vesa snd_ad1816 snd_envy24 snd_envy24ht snd_ess snd_hdspe snd_mss snd_sbc snd_spicds" # legacy
+makeoptions  WITHOUT_MODULES+="cpufreq geom_part_bsd geom_part_ebr geom_part_gpt geom_part_mbr kbdmux padlock_rng rdrand_rng if_gif if_vlan if_tuntap uinput evdev x86bios ahci ata isci pvscsi nvd nvme vmd uhci ohci ehci xhci umass virtio virtio_pci vtnet virtio_blk virtio_scsi virtio_balloon virtio_random virtio_console" # builtin
