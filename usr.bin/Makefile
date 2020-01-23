@@ -16,7 +16,6 @@ SUBDIR=	alias \
 	bzip2 \
 	bzip2recover \
 	cap_mkdb \
-	chat \
 	chpass \
 	cksum \
 	cmp \
