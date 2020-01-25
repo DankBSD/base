@@ -39,6 +39,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/uio.h>
 #include <sys/utsname.h>
 
+#include <capsicum_helpers.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -75,30 +76,37 @@ static char *endring;
 
 struct biltin biltins[] = {
 	/* Echo received data */
-	{ "echo",	SOCK_STREAM,	1, -1,	echo_stream },
-	{ "echo",	SOCK_DGRAM,	0, 1,	echo_dg },
+	{ "echo",	SOCK_STREAM,	true, -1,	echo_stream, true },
+	{ "echo",	SOCK_DGRAM,	false, 1,	echo_dg, false },
 
 	/* Internet /dev/null */
-	{ "discard",	SOCK_STREAM,	1, -1,	discard_stream },
-	{ "discard",	SOCK_DGRAM,	0, 1,	discard_dg },
+	{ "discard",	SOCK_STREAM,	true, -1,	discard_stream, true },
+	{ "discard",	SOCK_DGRAM,	false, 1,	discard_dg, false },
 
 	/* Return 32 bit time since 1900 */
-	{ "time",	SOCK_STREAM,	0, -1,	machtime_stream },
-	{ "time",	SOCK_DGRAM,	0, 1,	machtime_dg },
+	{ "time",	SOCK_STREAM,	false, -1,	machtime_stream,
+	    false },
+	{ "time",	SOCK_DGRAM,	false, 1,	machtime_dg, false },
 
 	/* Return human-readable time */
-	{ "daytime",	SOCK_STREAM,	0, -1,	daytime_stream },
-	{ "daytime",	SOCK_DGRAM,	0, 1,	daytime_dg },
+	{ "daytime",	SOCK_STREAM,	false, -1,	daytime_stream, false },
+	{ "daytime",	SOCK_DGRAM,	false, 1,	daytime_dg, false },
 
 	/* Familiar character generator */
-	{ "chargen",	SOCK_STREAM,	1, -1,	chargen_stream },
-	{ "chargen",	SOCK_DGRAM,	0, 1,	chargen_dg },
+	{ "chargen",	SOCK_STREAM,	true, -1,	chargen_stream, true },
+	{ "chargen",	SOCK_DGRAM,	false, 1,	chargen_dg, false },
 
-	{ "tcpmux",	SOCK_STREAM,	1, -1,	(bi_fn_t *)tcpmux },
+	/*
+	 * tcpmux cap_enter is effectively ignored; we explicitly check if the
+	 * service is tcpmux, then we invoke it manually and proceed as if the
+	 * service it resolved to was selected.
+	 */
+	{ "tcpmux",	SOCK_STREAM,	true, -1,	(bi_fn_t *)tcpmux,
+	    false },
 
-	{ "auth",	SOCK_STREAM,	1, -1,	ident_stream },
+	{ "auth",	SOCK_STREAM,	true, -1,	ident_stream, false },
 
-	{ NULL,		0,		0, 0,	NULL }
+	{ NULL,		0,		0, 0,	NULL,	false }
 };
 
 /*
@@ -621,6 +629,8 @@ ident_stream(int s, struct servtab *sep)
 			iderror(lport, fport, s, ID_UNKNOWN);
 		fakeid_fd = open(p, O_RDONLY | O_NONBLOCK);
 		free(p);
+		if (caph_limit_stream(fakeid_fd, CAPH_READ) == -1)
+			goto fakeid_fail;
 		if (fakeid_fd == -1 || fstat(fakeid_fd, &sb) == -1 ||
 		    !S_ISREG(sb.st_mode))
 			goto fakeid_fail;

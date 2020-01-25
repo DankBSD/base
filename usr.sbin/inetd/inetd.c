@@ -110,6 +110,7 @@ static char sccsid[] = "@(#)from: inetd.c	8.4 (Berkeley) 4/13/94";
  * #endif
  */
 #include <sys/param.h>
+#include <sys/capsicum.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
@@ -124,6 +125,7 @@ static char sccsid[] = "@(#)from: inetd.c	8.4 (Berkeley) 4/13/94";
 #include <rpc/rpc.h>
 #include <rpc/pmap_clnt.h>
 
+#include <capsicum_helpers.h>
 #include <ctype.h>
 #include <errno.h>
 #include <err.h>
@@ -294,6 +296,9 @@ static struct netconfig *udpconf, *tcpconf, *udp6conf, *tcp6conf;
 
 static LIST_HEAD(, procinfo) proctable[PERIPSIZE];
 
+static cap_rights_t ctrl_rights, dgram_svc_rights, svc_rights;
+static unsigned long *ctrl_cmds, nctrl_cmds;
+
 static int
 getvalue(const char *arg, int *value, const char *whine)
 {
@@ -327,6 +332,99 @@ whichaf(struct request_info *req)
 }
 #endif
 
+static void
+setup_sigpipe(void)
+{
+	const unsigned long sigpipe_cmds[] = { FIONREAD };
+	cap_rights_t sigrxpipe_rights, sigtxpipe_rights;
+
+	cap_rights_init(&sigtxpipe_rights, CAP_WRITE);
+	cap_rights_init(&sigrxpipe_rights, CAP_READ, CAP_IOCTL, CAP_EVENT);
+	if (pipe2(signalpipe, O_CLOEXEC) != 0) {
+		syslog(LOG_ERR, "pipe: %m");
+		exit(EX_OSERR);
+	}
+	if (caph_rights_limit(signalpipe[1], &sigtxpipe_rights) == -1) {
+		syslog(LOG_ERR, "failed to limit tx signalpipe: %m");
+		exit(EX_OSERR);
+	}
+	if (caph_rights_limit(signalpipe[0], &sigrxpipe_rights) == -1 ||
+	    caph_ioctls_limit(signalpipe[0], sigpipe_cmds,
+	    nitems(sigpipe_cmds)) == -1) {
+		syslog(LOG_ERR, "failed to limit rx signalpipe: %m");
+		exit(EX_OSERR);
+	}
+}
+
+static void
+prepare_ctrl_caps(void)
+{
+	const unsigned long std_ctrl_cmds[] = { FIONBIO, FIONREAD };
+	size_t i, j;
+
+	/*
+	 * The rights we're imposing on these sockets will be passed down to
+	 * inetd services as stdio, so we need to both be somewhat respectful of
+	 * what they may reasonably attempt to do and we need to make sure we
+	 * apply a superset of the standard rights we grant to stdio.
+	 */
+	caph_stream_rights(&ctrl_rights, CAPH_READ | CAPH_WRITE);
+	caph_stream_rights(&svc_rights, CAPH_READ | CAPH_WRITE);
+
+	/* Control rights need to be a superset of service rights. */
+	cap_rights_set(&ctrl_rights, CAP_ACCEPT, CAP_BIND, CAP_CONNECT,
+	    CAP_LISTEN, CAP_SETSOCKOPT, CAP_GETSOCKNAME);
+	cap_rights_set(&svc_rights, CAP_SETSOCKOPT, CAP_GETSOCKNAME);
+#ifdef LIBWRAP
+	cap_rights_set(&ctrl_rights, CAP_GETPEERNAME);
+	cap_rights_set(&svc_rights, CAP_GETPEERNAME);
+#endif
+	/* Now build dgram_svc_rights as based on svc_rights + CAP_CONNECT. */
+	cap_rights_init(&dgram_svc_rights);
+	cap_rights_merge(&dgram_svc_rights, &svc_rights);
+	cap_rights_set(&dgram_svc_rights, CAP_CONNECT);
+
+	nctrl_cmds = nitems(caph_stream_cmds) + nitems(std_ctrl_cmds);
+	ctrl_cmds = reallocarray(NULL, nctrl_cmds, sizeof(*ctrl_cmds));
+	if (ctrl_cmds == NULL) {
+		syslog(LOG_ERR, "reallocarray: %m");
+		exit(EX_OSERR);
+	}
+
+	for (i = 0, j = 0; i < nitems(caph_stream_cmds); ++i, ++j)
+		ctrl_cmds[j] = caph_stream_cmds[i];
+	for (i = 0; i < nitems(std_ctrl_cmds); ++i, ++j)
+		ctrl_cmds[j] = std_ctrl_cmds[i];
+}
+
+/*
+ * Both service and control capabilities are handled through here, to simplify
+ * paths needed to read to understand what can be done.  Service sockets are
+ * created via accept(2), thus inheriting the rights of the control socket.
+ * Therefore, control caps must be a superset of those needed by the services.
+ */
+static void
+setup_ctrl_caps(int fd, struct servtab *sep)
+{
+	cap_rights_t *rights;
+
+	if (sep != NULL && sep->se_socktype == SOCK_DGRAM)
+		rights = &dgram_svc_rights;
+	else if (sep != NULL)
+		rights = &svc_rights;
+	else
+		rights = &ctrl_rights;
+	if (caph_rights_limit(fd, rights) == -1) {
+		syslog(LOG_ERR, "failed to limit %s sock: %m",
+		    sep != NULL ? "service" : "control");
+		exit(EX_OSERR);
+	}
+	if (sep == NULL && caph_ioctls_limit(fd, ctrl_cmds, nctrl_cmds) == -1) {
+		syslog(LOG_ERR, "failed to limit control ioctls: %m");
+		exit(EX_OSERR);
+	}
+}
+
 int
 main(int argc, char **argv)
 {
@@ -334,7 +432,7 @@ main(int argc, char **argv)
 	struct passwd *pwd;
 	struct group *grp;
 	struct sigaction sa, saalrm, sachld, sahup, sapipe;
-	int ch, dofork;
+	int ch;
 	pid_t pid;
 	char buf[50];
 #ifdef LOGIN_CAP
@@ -351,8 +449,16 @@ main(int argc, char **argv)
 	const char *servname;
 	int error;
 	struct conninfo *conn;
+	bool dofork;
 
 	openlog("inetd", LOG_PID | LOG_NOWAIT | LOG_PERROR, LOG_DAEMON);
+	/* Relies on syslog(3). */
+	prepare_ctrl_caps();
+
+	if (caph_limit_stdio() == -1) {
+		syslog(LOG_ERR, "caph_limit_stdio: %m");
+		exit(1);
+	}
 
 	while ((ch = getopt(argc, argv, "dlwWR:a:c:C:p:s:")) != -1)
 		switch(ch) {
@@ -557,10 +663,7 @@ main(int argc, char **argv)
 		(void)setenv("inetd_dummy", dummy, 1);
 	}
 
-	if (pipe2(signalpipe, O_CLOEXEC) != 0) {
-		syslog(LOG_ERR, "pipe: %m");
-		exit(EX_OSERR);
-	}
+	setup_sigpipe();
 	FD_SET(signalpipe[0], &allsock);
 #ifdef SANITY_CHECK
 	nsock++;
@@ -643,6 +746,13 @@ main(int argc, char **argv)
                                               close(ctrl);
 				    continue;
 			    }
+
+			    /*
+			     * This will limit the service effectively to
+			     * read/write/select for all spawned processes, both
+			     * builtin and external.
+			     */
+			    setup_ctrl_caps(ctrl, sep);
 			    i = 0;
 			    if (ioctl(sep->se_fd, FIONBIO, &i) < 0)
 				    syslog(LOG_ERR, "ioctl1(FIONBIO, 0): %m");
@@ -660,6 +770,8 @@ main(int argc, char **argv)
 			    }
 		    } else
 			    ctrl = sep->se_fd;
+		    if (sep->se_socktype == SOCK_DGRAM)
+			    setup_ctrl_caps(ctrl, sep);
 		    if (dolog && !ISWRAP(sep)) {
 			    char pname[NI_MAXHOST] = "unknown";
 			    socklen_t sl;
@@ -755,6 +867,7 @@ main(int argc, char **argv)
 					    _exit(0);
 				    }
 			    }
+
 #ifdef LIBWRAP
 			    if (ISWRAP(sep)) {
 				inetd_setproctitle("wrapping", ctrl);
@@ -785,6 +898,12 @@ main(int argc, char **argv)
 				}
 			    }
 #endif
+
+			    if (dofork && sep->se_bi != NULL &&
+				sep->se_bi->bi_capenter && caph_enter() == -1) {
+				syslog(LOG_ERR, "cap_enter: %m");
+				_exit(0);
+			    }
 			    if (sep->se_bi) {
 				(*sep->se_bi->bi_fn)(ctrl, sep);
 			    } else {
@@ -1267,6 +1386,8 @@ setup(struct servtab *sep)
 		    sep->se_service, sep->se_proto);
 		return;
 	}
+
+	setup_ctrl_caps(sep->se_fd, NULL);
 #define	turnon(fd, opt) \
 setsockopt(fd, SOL_SOCKET, opt, (char *)&on, sizeof (on))
 	if (strcmp(sep->se_proto, "tcp") == 0 && (options & SO_DEBUG) &&

@@ -38,6 +38,7 @@
 
 #include <netinet/in.h>
 
+#include <stdbool.h>
 #include <stdio.h>
 
 #define BUFSIZE 8192
@@ -146,8 +147,9 @@ typedef void (bi_fn_t)(int, struct servtab *);
 struct biltin {
 	const char *bi_service;		/* internally provided service name */
 	int	bi_socktype;		/* type of socket supported */
-	short	bi_fork;		/* 1 if should fork before call */
+	bool	bi_fork;		/* 1 if should fork before call */
 	int	bi_maxchild;		/* max number of children, -1=default */
 	bi_fn_t	*bi_fn;			/* function which performs it */
+	bool	bi_capenter;		/* enter capability mode upon fork */
 };
 extern struct biltin biltins[];
