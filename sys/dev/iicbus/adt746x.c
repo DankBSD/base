@@ -27,6 +27,15 @@
  * SUCH DAMAGE.
  */
 
+/*
+ * ADT7460 and ADT7467 thermal monitor/fan controller.
+ * Todo:
+ * - Switch to higher resolution reads.
+ * - Cache readings / respect hwsensor-polling-period.
+ * - Do more accurate vcore measurement like OS X does.
+ * - Wire up the thermal alarm?
+ */
+
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
@@ -55,22 +64,28 @@ __FBSDID("$FreeBSD$");
 #include <powerpc/powermac/powermac_thermal.h>
 
 /* ADT746X registers. */
-#define ADT746X_TACH1LOW          0x28
-#define ADT746X_TACH1HIGH         0x29
-#define ADT746X_TACH2LOW          0x2a
-#define ADT746X_TACH2HIGH         0x2b
-#define ADT746X_PWM1              0x30
-#define ADT746X_PWM2              0x31
-#define ADT746X_DEVICE_ID         0x3d
-#define ADT746X_COMPANY_ID        0x3e
-#define ADT746X_REV_ID            0x3f
-#define ADT746X_CONFIG            0x40
-#define ADT746X_PWM1_CONF         0x5c
-#define ADT746X_PWM2_CONF         0x5d
-#define ADT746X_MANUAL_MASK       0xe0
+#define	ADT746X_VOLT_2V5	0x20
+#define	ADT746X_VOLT_2V5VCC	0x21	/* ADT7467 */
+#define	ADT746X_VOLT_VCC	0x22
+#define	ADT746X_TEMP_REMOTE1	0x25
+#define	ADT746X_TEMP_LOCAL	0x26
+#define	ADT746X_TEMP_REMOTE2	0x27
+#define	ADT746X_TACH1LOW	0x28
+#define	ADT746X_TACH1HIGH	0x29
+#define	ADT746X_TACH2LOW	0x2a
+#define	ADT746X_TACH2HIGH	0x2b
+#define	ADT746X_PWM1		0x30
+#define	ADT746X_PWM2		0x31
+#define	ADT746X_DEVICE_ID	0x3d
+#define	ADT746X_COMPANY_ID	0x3e
+#define	ADT746X_REV_ID		0x3f
+#define	ADT746X_CONFIG		0x40
+#define	ADT746X_PWM1_CONF	0x5c
+#define	ADT746X_PWM2_CONF	0x5d
+#define	ADT746X_MANUAL_MASK	0xe0
 
-#define ADT7460_DEV_ID            0x27
-#define ADT7467_DEV_ID            0x68
+#define	ADT7460_DEV_ID		0x27
+#define	ADT7467_DEV_ID		0x68
 
 struct adt746x_fan {
 	struct pmac_fan fan;
@@ -106,6 +121,15 @@ struct adt746x_softc {
     
 };
 
+/* Sensor offset to register map */
+static int adt746x_fallback_map[] = {
+	ADT746X_TEMP_LOCAL,
+	ADT746X_TEMP_REMOTE1,
+	ADT746X_TEMP_REMOTE2,
+	ADT746X_VOLT_VCC,	/* XXX Measuring via 2V5 is more accurate? */
+	ADT746X_TACH1LOW,
+	ADT746X_TACH2LOW,	/* Not always present */
+};
 
 /* Regular bus attachment functions */
 
@@ -365,7 +389,7 @@ adt746x_fill_fan_prop(device_t dev)
 	if (location_len == -1 || id_len == -1) {
 		OF_prop_free(location);
 		OF_prop_free(id);
-		return 0;
+		return (0);
 	}
 
 	/* Fill in all the properties for each fan. */
@@ -404,13 +428,103 @@ adt746x_fill_sensor_prop(device_t dev)
 	phandle_t child, node;
 	struct adt746x_softc *sc;
 	char sens_type[32];
-	int i = 0, reg, sensid;
+	u_int *id;
+	u_int *zone;
+	char *location;
+	char *hwsensor_type;
+	int i = 0, vers = 0, reg, sensid;
+	int llen = 0, hwslen = 0, id_alloc_count, loc_alloc_len, hws_alloc_len;
+	int zone_alloc_count;
+	int prev_llen = 0, prev_hwslen = 0;
 
 	sc = device_get_softc(dev);
 
 	child = ofw_bus_get_node(dev);
 
-	/* Fill in the sensor properties for each child. */
+	OF_getprop(child, "hwsensor-params-version", &vers, sizeof(vers));
+	device_printf(dev, "Sensor format: %d\n", vers);
+
+	/*
+	 * Version 1 format:
+	 *
+	 * The older version 1 sensor format may or may not have children.
+	 * The hardcoded sensor order of version 1 is:
+	 * local, remote 1, remote 2, vcc, tach 1, (tach 2).
+	 *
+	 * Interestingly, the internal probe is listed first. This appears
+	 * to be a defacto standard that was inherited from earlier chipsets.
+	 *
+	 * Some 2004 models have child thermal sensors, but label them
+	 * incorrectly.
+	 *
+	 * The children are in register order (remote1, local, remote2)
+	 * but the locations were assigned to them in defacto order
+	 * (local, remote1, remote2). Darwin appears to work around this
+	 * by only looking at the children when using version 2 format.
+	 */
+	if (vers == 1 /* && OF_child(child) == 0 */ ){
+
+		loc_alloc_len = OF_getprop_alloc(child, "hwsensor-location",
+		    (void **)&location);
+		id_alloc_count = OF_getprop_alloc_multi(child, "hwsensor-id",
+		    sizeof(cell_t), (void **)&id);
+		hws_alloc_len = OF_getprop_alloc(child, "hwsensor-type",
+		    (void **)&hwsensor_type);
+		zone_alloc_count = OF_getprop_alloc_multi(child,
+		    "hwsensor-zone", sizeof(cell_t), (void **)&zone);
+
+		/* Abort if there were >6 sensors or missing properties. */
+		if (loc_alloc_len == -1 || id_alloc_count == -1 ||
+		    hws_alloc_len == -1 || zone_alloc_count == -1 ||
+		    id_alloc_count > 6) {
+			OF_prop_free(location);
+			OF_prop_free(id);
+			OF_prop_free(hwsensor_type);
+			OF_prop_free(zone);
+			return (0);
+		}
+		for (i = 0; i < id_alloc_count; i++) {
+			strlcpy(sc->sc_sensors[i].therm.name, location + llen, 32);
+			prev_llen = strlen(location + llen) + 1;
+			llen += prev_llen;
+			strlcpy(sens_type, hwsensor_type + hwslen, 32);
+			prev_hwslen = strlen(hwsensor_type + hwslen) + 1;
+			hwslen += prev_hwslen;
+
+			sc->sc_sensors[i].id = id[i];
+			/* This is the i2c register of the sensor.  */
+			sc->sc_sensors[i].reg = adt746x_fallback_map[i];
+
+			if (strcmp(sens_type, "temperature") == 0)
+				sc->sc_sensors[i].type = ADT746X_SENSOR_TEMP;
+			else if (strcmp(sens_type, "voltage") == 0)
+				sc->sc_sensors[i].type = ADT746X_SENSOR_VOLT;
+			else
+				sc->sc_sensors[i].type = ADT746X_SENSOR_SPEED;
+
+			sc->sc_sensors[i].therm.zone = zone[i];
+			sc->sc_sensors[i].dev = dev;
+			sc->sc_sensors[i].therm.read =
+			    (int (*)(struct pmac_therm *))adt746x_sensor_read;
+			if (sc->sc_sensors[i].type == ADT746X_SENSOR_TEMP) {
+				/* Make up some ranges */
+				sc->sc_sensors[i].therm.target_temp =
+				    500 + ZERO_C_TO_K;
+				sc->sc_sensors[i].therm.max_temp =
+				    800 + ZERO_C_TO_K;
+
+				pmac_thermal_sensor_register(
+				    &sc->sc_sensors[i].therm);
+			}
+		}
+		OF_prop_free(location);
+		OF_prop_free(id);
+		OF_prop_free(hwsensor_type);
+		OF_prop_free(zone);
+		return (i);
+	}
+
+	/* Version 2 format: Fill in the sensor properties for each child. */
 	for (node = OF_child(child); node != 0; node = OF_peer(node)) {
 		if (OF_getprop(node, "sensor-id", &sensid, sizeof(sensid)) == -1)
 		    continue;
@@ -549,6 +663,7 @@ adt746x_sensor_read(struct adt746x_sensor *sens)
 
 	sc = device_get_softc(sens->dev);
 	if (sens->type != ADT746X_SENSOR_SPEED) {
+		/* XXX Implement extended resolution reading */
 		if (adt746x_read(sc->sc_dev, sc->sc_addr, sens->reg,
 				 &temp) < 0)
 			return (-1);
