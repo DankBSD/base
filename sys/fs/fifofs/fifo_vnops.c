@@ -73,12 +73,10 @@ struct fifoinfo {
 static vop_print_t	fifo_print;
 static vop_open_t	fifo_open;
 static vop_close_t	fifo_close;
-static vop_advlock_t	fifo_advlock;
 
 struct vop_vector fifo_specops = {
 	.vop_default =		&default_vnodeops,
 
-	.vop_advlock =		fifo_advlock,
 	.vop_close =		fifo_close,
 	.vop_create =		VOP_PANIC,
 	.vop_getattr =		VOP_EBADF,
@@ -347,22 +345,4 @@ fifo_print(ap)
 	fifo_printinfo(ap->a_vp);
 	printf("\n");
 	return (0);
-}
-
-/*
- * Fifo advisory byte-level locks.
- */
-/* ARGSUSED */
-static int
-fifo_advlock(ap)
-	struct vop_advlock_args /* {
-		struct vnode *a_vp;
-		caddr_t  a_id;
-		int  a_op;
-		struct flock *a_fl;
-		int  a_flags;
-	} */ *ap;
-{
-
-	return (ap->a_flags & F_FLOCK ? EOPNOTSUPP : EINVAL);
 }
