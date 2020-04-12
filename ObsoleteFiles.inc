@@ -1290,6 +1290,16 @@ OLD_FILES+=usr/share/man/man9/crypto_find_driver.9.gz
 OLD_FILES+=usr/share/man/man9/crypto_register.9.gz
 OLD_FILES+=usr/share/man/man9/crypto_unregister.9.gz
 
+# 20200324: Remove liby and libl
+OLD_FILES+=usr/lib/libfl_p.a
+OLD_FILES+=usr/lib/libfl.a
+OLD_FILES+=usr/lib/libl_p.a
+OLD_FILES+=usr/lib/libl.a
+OLD_FILES+=usr/lib/libln_p.a
+OLD_FILES+=usr/lib/libln.a
+OLD_FILES+=usr/lib/liby_p.a
+OLD_FILES+=usr/lib/liby.a
+
 # 20200323: INTERNALLIB don't install headers anymore
 OLD_FILES+=usr/include/libelftc.h
 OLD_FILES+=usr/include/libifconfig.h

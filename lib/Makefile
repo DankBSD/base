@@ -103,7 +103,6 @@ SUBDIR=	${SUBDIR_BOOTSTRAP} \
 	${_libvgl} \
 	libwrap \
 	libxo \
-	liby \
 	libz \
 	libzstd \
 	ncurses

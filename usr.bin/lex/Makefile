@@ -37,8 +37,6 @@ NO_WMISLEADING_INDENTATION=
 CLEANFILES=	scan.c skel.c
 GENFILES=	parse.c parse.h scan.c skel.c
 
-SUBDIR=		lib
-
 FLEX_VERSION=	`awk -f ${.CURDIR}/version.awk ${.CURDIR}/config.h`
 
 skel.c: config.h mkskel.sh flex.skl version.awk

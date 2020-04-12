@@ -92,12 +92,12 @@
 # XXX not -j safe
 .y.out:
 	${YACC} ${YFLAGS} ${.IMPSRC}
-	${CC} ${CFLAGS} ${LDFLAGS} y.tab.c ${LDLIBS} -ly -o ${.TARGET}
+	${CC} ${CFLAGS} ${LDFLAGS} y.tab.c ${LDLIBS} -o ${.TARGET}
 	rm -f y.tab.c
 	${CTFCONVERT_CMD}
 
 .l.out:
 	${LEX} -t ${LFLAGS} ${.IMPSRC} > ${.PREFIX}.tmp.c
-	${CC} ${CFLAGS} ${LDFLAGS} ${.PREFIX}.tmp.c ${LDLIBS} -ll -o ${.TARGET}
+	${CC} ${CFLAGS} ${LDFLAGS} ${.PREFIX}.tmp.c ${LDLIBS} -o ${.TARGET}
 	rm -f ${.PREFIX}.tmp.c
 	${CTFCONVERT_CMD}
