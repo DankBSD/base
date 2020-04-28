@@ -44,10 +44,11 @@ LDSCRIPT?=	$S/conf/${LDSCRIPT_NAME}
 
 M=		${MACHINE}
 
+LLVM_BIN?=/usr/local/llvm12/bin
 AWK?=		awk
 CP?=		cp
-NM?=		nm
-OBJCOPY?=	objcopy
+NM		?=	${LLVM_BIN}/llvm-nm
+OBJCOPY		?=	${LLVM_BIN}/llvm-objcopy
 SIZE?=		size
 
 .if defined(DEBUG)

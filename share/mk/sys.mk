@@ -146,18 +146,20 @@ NO_META_IGNORE_HOST_HEADERS=	1
 .SUFFIXES:	.out .a .o .bco .llo .c .cc .cpp .cxx .C .m .F .f .e .r .y .l .S .asm .s .cl .p .h .sh
 .endif
 
-AR		?=	ar
+LLVM_BIN?=/usr/local/llvm12/bin
+
+AR		?=	${LLVM_BIN}/llvm-ar
 .if defined(%POSIX)
 ARFLAGS		?=	-rv
 .else
 ARFLAGS		?=	-crsD
 .endif
-RANLIB		?=	ranlib
+RANLIB		?=	${LLVM_BIN}/llvm-ranlib
 .if !defined(%POSIX)
 RANLIBFLAGS	?=	-D
 .endif
 
-AS		?=	as
+AS		?=	${LLVM_BIN}/llvm-as
 AFLAGS		?=
 ACFLAGS		?=
 
@@ -165,7 +167,7 @@ ACFLAGS		?=
 CC		?=	c89
 CFLAGS		?=	-O
 .else
-CC		?=	cc
+CC		?=	${LLVM_BIN}/clang
 CFLAGS		?=	-O2 -pipe
 .if defined(NO_STRICT_ALIASING)
 CFLAGS		+=	-fno-strict-aliasing
@@ -178,7 +180,7 @@ PO_CFLAGS	?=	${CFLAGS}
 # read-only files as non-root by passing -f.
 CP		?=	cp -f
 
-CPP		?=	cpp
+CPP		?=	${LLVM_BIN}/clang-cpp
 
 # C Type Format data is required for DTrace
 CTFFLAGS	?=	-L VERSION
@@ -190,7 +192,7 @@ CTFMERGE	?=	ctfmerge
 CTFFLAGS	+=	-g
 .endif
 
-CXX		?=	c++
+CXX		?=	${LLVM_BIN}/clang++
 CXXFLAGS	?=	${CFLAGS:N-std=*:N-Wnested-externs:N-W*-prototypes:N-Wno-pointer-sign:N-Wold-style-definition}
 IR_CXXFLAGS	?=	${STATIC_CXXFLAGS:N-O*} ${CXXFLAGS:N-O*}
 PO_CXXFLAGS	?=	${CXXFLAGS}
@@ -238,24 +240,24 @@ LFLAGS		?=
 # LDFLAGS is for CC, _LDFLAGS is for LD.  Generate _LDFLAGS from
 # LDFLAGS by stripping -Wl, from pass-through arguments and dropping
 # compiler driver flags (e.g. -mabi=*) that conflict with flags to LD.
-LD		?=	ld
+LD		?=	${LLVM_BIN}/ld
 LDFLAGS		?=
 _LDFLAGS	=	${LDFLAGS:S/-Wl,//g:N-mabi=*:N-fuse-ld=*:N--ld-path=*}
 
 MAKE		?=	make
 
 .if !defined(%POSIX)
-LLVM_LINK	?=	llvm-link
+LLVM_LINK	?=	${LLVM_BIN}/llvm-link
 
 LORDER		?=	lorder
 
-NM		?=	nm
+NM		?=	${LLVM_BIN}/llvm-nm
 NMFLAGS		?=
 
-OBJC		?=	cc
+OBJC		?=	${LLVM_BIN}/clang
 OBJCFLAGS	?=	${OBJCINCLUDES} ${CFLAGS} -Wno-import
 
-OBJCOPY		?=	objcopy
+OBJCOPY		?=	/usr/bin/objcopy # llvm doesn't support 'efi-app-x86_64'
 
 PC		?=	pc
 PFLAGS		?=
