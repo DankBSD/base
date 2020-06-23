@@ -185,6 +185,7 @@ static void	acpi_enable_pcie(void);
 static void	acpi_hint_device_unit(device_t acdev, device_t child,
 		    const char *name, int *unitp);
 static void	acpi_reset_interfaces(device_t dev);
+static bus_dma_tag_t acpi_get_dma_tag(device_t dev, device_t child);
 
 static device_method_t acpi_methods[] = {
     /* Device interface */
@@ -219,6 +220,7 @@ static device_method_t acpi_methods[] = {
     DEVMETHOD(bus_hint_device_unit,	acpi_hint_device_unit),
     DEVMETHOD(bus_get_cpus,		acpi_get_cpus),
     DEVMETHOD(bus_get_domain,		acpi_get_domain),
+    DEVMETHOD(bus_get_dma_tag,		acpi_get_dma_tag),
 
     /* ACPI bus */
     DEVMETHOD(acpi_id_probe,		acpi_device_id_probe),
@@ -430,6 +432,102 @@ acpi_identify(void)
     snprintf(acpi_ca_version, sizeof(acpi_ca_version), "%x", ACPI_CA_VERSION);
 
     return (0);
+}
+
+struct dma_limits {
+	bus_addr_t lowaddr;
+};
+
+static ACPI_STATUS
+dma_on_resource(ACPI_RESOURCE *res, void *arg)
+{
+	struct dma_limits *limits = arg;
+	bus_addr_t min, len;
+
+	/*
+	 * The minimum and maximum are device-side. To get the CPU-side minimum,
+	 * we add the translation offset. This can overflow to signify lower addresses
+	 * on the CPU than the device, e.g. "Bus 0xC0000000 -> CPU 0x00000000"
+	 * on the RPi4 is represented as 0xC0000000 min + 0xFFFFFFFF40000000 offset.
+	 */
+
+	switch (res->Type) {
+	case ACPI_RESOURCE_TYPE_ADDRESS16:
+		min = (uint16_t)(res->Data.Address16.Address.Minimum +
+		    res->Data.Address16.Address.TranslationOffset);
+		len = res->Data.Address16.Address.AddressLength;
+		break;
+	case ACPI_RESOURCE_TYPE_ADDRESS32:
+		min = (uint32_t)(res->Data.Address32.Address.Minimum +
+		    res->Data.Address32.Address.TranslationOffset);
+		len = res->Data.Address32.Address.AddressLength;
+		break;
+	case ACPI_RESOURCE_TYPE_ADDRESS64:
+		min = (uint64_t)(res->Data.Address64.Address.Minimum +
+		    res->Data.Address64.Address.TranslationOffset);
+		len = res->Data.Address64.Address.AddressLength;
+		break;
+	case ACPI_RESOURCE_TYPE_END_TAG:
+		return (AE_OK);
+	default:
+		printf("ACPI: warning: DMA limit with unsupported resource type %d\n",
+			res->Type);
+		return (AE_OK);
+	}
+
+	if (min != 0)
+		printf("ACPI: warning: DMA limit with non-zero minimum address"
+		    " not supported yet\n");
+
+	limits->lowaddr = MIN(limits->lowaddr, min + len);
+
+	return (AE_OK);
+}
+
+static int
+get_dma_tag(ACPI_HANDLE handle, bus_dma_tag_t *result)
+{
+	ACPI_HANDLE parent;
+	unsigned int coherent;
+	struct dma_limits limits = {
+		.lowaddr = BUS_SPACE_MAXADDR,
+	};
+
+	if (ACPI_FAILURE(AcpiWalkResources(handle, "_DMA",
+	    dma_on_resource, (void *)&limits))) {
+		/* Inherit resources from parent handle if we don't have our own */
+		if (ACPI_SUCCESS(AcpiGetParent(handle, &parent)))
+			return (get_dma_tag(parent, result));
+
+		/* The root (which has no parent) has no restrictions */
+		*result = NULL;
+		return (0);
+	}
+
+	if (ACPI_FAILURE(acpi_GetInteger(handle, "_CCA", &coherent)))
+		coherent = 0;
+
+	if (bus_dma_tag_create(NULL, 1, 0,
+		limits.lowaddr, BUS_SPACE_MAXADDR, NULL, NULL,
+		BUS_SPACE_MAXSIZE, BUS_SPACE_UNRESTRICTED, BUS_SPACE_MAXSIZE,
+		coherent ? BUS_DMA_COHERENT : 0, NULL, NULL,
+		result) != 0)
+		return (ENOMEM);
+
+	return (0);
+}
+
+static bus_dma_tag_t
+acpi_get_dma_tag(device_t dev, device_t child)
+{
+	bus_dma_tag_t result;
+
+	if (get_dma_tag(acpi_get_handle(child), &result) != 0) {
+		device_printf(child, "could not get ACPI DMA limits\n");
+		return (NULL);
+	}
+
+	return (result);
 }
 
 /*
