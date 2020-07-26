@@ -955,6 +955,12 @@ gic_v3_ipi_send(device_t dev, struct intr_irqsrc *isrc, cpuset_t cpus,
 	irq = gi->gi_irq;
 	val = 0;
 
+	/*
+	 * Ensure that this CPUs stores will be visible to IPI
+	 * recipients before starting to send the interrupts.
+	 */
+	dsb(ishst);
+
 	/* Iterate through all CPUs in set */
 	for (i = 0; i <= mp_maxid; i++) {
 		/* Move to the next affinity group */
