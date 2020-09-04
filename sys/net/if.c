@@ -1354,6 +1354,10 @@ if_vmove(struct ifnet *ifp, struct vnet *new_vnet)
 	if (ifp->if_reassign != NULL)
 		ifp->if_reassign(ifp, new_vnet, NULL);
 
+	/* Don't re-attach DYING interfaces. */
+	if (ifp->if_flags & IFF_DYING)
+		return (0);
+
 	/*
 	 * Switch to the context of the target vnet.
 	 */
