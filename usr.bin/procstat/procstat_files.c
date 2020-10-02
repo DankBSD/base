@@ -419,6 +419,11 @@ procstat_files(struct procstat *procstat, struct kinfo_proc *kipp)
 			xo_emit("{eq:fd_type/eventfd}");
 			break;
 
+		case PS_FST_TYPE_DMABUF:
+			str = "B";
+			xo_emit("{eq:fd_type/dmabuf}");
+			break;
+
 		case PS_FST_TYPE_NONE:
 			str = "?";
 			xo_emit("{eq:fd_type/none}");
