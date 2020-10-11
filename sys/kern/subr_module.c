@@ -570,6 +570,6 @@ sysctl_preload_dump(SYSCTL_HANDLER_ARGS)
 	return (error);
 }
 SYSCTL_PROC(_debug, OID_AUTO, dump_modinfo,
-    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE | CTLFLAG_ROOTONLY,
     NULL, 0, sysctl_preload_dump, "A",
     "pretty-print the bootloader metadata");
