@@ -28,4 +28,6 @@ dekerberize:
 	${MAKE} MK_KERBEROS=no install
 .endfor
 
+SUBDIR_WITH_INCS=lib
+
 .include <bsd.subdir.mk>

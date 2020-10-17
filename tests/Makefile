@@ -12,6 +12,8 @@ SUBDIR+= etc
 SUBDIR+= sys
 
 SUBDIR_PARALLEL=
+# Skip make includes for this part of the tree
+SUBDIR_WITH_INCS=
 
 afterinstall: install-tests-local
 install-tests-local: .PHONY

@@ -47,5 +47,7 @@ SUBDIR.${MK_TESTS}+=	tests
 .include <bsd.arch.inc.mk>
 
 SUBDIR_PARALLEL=
+# Skip make includes for this part of the tree
+SUBDIR_WITH_INCS=
 
 .include <bsd.subdir.mk>

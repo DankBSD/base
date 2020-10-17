@@ -19,6 +19,10 @@
 #		subdirectories. SUBDIR.yes and SUBDIR.yes.yes are
 #		automatically appended to this list.
 #
+# SUBDIR_WITH_INCS	A list of subdirectories that installs includes. If this
+#		variable is not set, it will behave as if set to SUBDIR excluding "test"
+#		and "tests".
+#
 # +++ targets +++
 #
 #	distribute:
@@ -140,7 +144,7 @@ _SUBDIR_SH=	\
 		fi; \
 		${ECHODIR} "===> ${DIRPRFX}$${dir} ($${target})"; \
 		cd ${.CURDIR}/$${dir}; \
-		${MAKE} $${target} DIRPRFX=${DIRPRFX}$${dir}/
+		_HAVE_INCS=$${have_incs} ${MAKE} $${target} DIRPRFX=${DIRPRFX}$${dir}/
 
 # This is kept for compatibility only.  The normal handling of attaching to
 # SUBDIR_TARGETS will create a target for each directory.
@@ -153,6 +157,27 @@ _SUBDIR: .USEBEFORE
 # Create 'make subdir' targets to run the real 'all' target.
 .for __dir in ${SUBDIR:N.WAIT}
 ${__dir}: all_subdir_${DIRPRFX}${__dir} .PHONY
+.endfor
+
+# Skip the includes/installincludes target for subdirs that don't have includes
+# as this massively speeds up the make includes part of buildworld.
+# We assume that tests don't need to install includes by default (if they do,
+# you can just set SUBDIR_WITH_INCS=tests in the Makefile).
+.for __dir in ${SUBDIR:N.WAIT}
+.if defined(SUBDIR_WITH_INCS)
+.if ${SUBDIR_WITH_INCS:M${__dir}} == "${__dir}"
+__have_incs_${__dir}=yes
+.else
+__have_incs_${__dir}=no
+.endif
+.else
+.if ${__dir} == "test" || ${__dir} == "tests"
+# Assume that tests don't need to install includes by default
+__have_incs_${__dir}=no
+.else
+__have_incs_${__dir}=maybe
+.endif
+.endif
 .endfor
 
 .for __target in ${SUBDIR_TARGETS}
@@ -181,11 +206,14 @@ __deps+= ${__target}_subdir_${DIRPRFX}${__dep}
 __deps:= ${__subdir_targets}
 .endif	# defined(SUBDIR_PARALLEL)
 .endif	# ${_is_standalone_target} == 0
+.if (${__target} != "installincludes" && ${__target} != "includes") || \
+    ${__have_incs_${__dir}} != "no" || defined(_SANITITY_CHECK_INCS)
 ${__target}_subdir_${DIRPRFX}${__dir}: .PHONY .MAKE .SILENT ${__deps}
 	@${_+_}target=${__target:realinstall=install}; \
-	    dir=${__dir}; \
+	    dir=${__dir}; have_incs=${__have_incs_${__dir}}; \
 	    ${_SUBDIR_SH};
 __subdir_targets+= ${__target}_subdir_${DIRPRFX}${__dir}
+.endif
 .endif	# ${__dir} == .WAIT
 .endfor	# __dir in ${SUBDIR}
 

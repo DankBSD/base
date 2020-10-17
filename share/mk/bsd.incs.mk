@@ -112,3 +112,18 @@ STAGE_SYMLINKS.INCS= ${INCSLINKS}
 .endif
 
 .endif # ${MK_INCLUDES} != "no"
+
+# Sanity check that SUBDIR_WITH_INCS was set correctly
+.if defined(_HAVE_INCS)
+.for group in ${INCSGROUPS:UINCS}
+.if defined(${group}) && !empty(${group})
+.if ${_HAVE_INCS} == "no"
+.error ${.CURDIR}: Found includes but _HAVE_INCS=${_HAVE_INCS}. \
+    Did you forget to set SUBDIR_WITH_INCS in the parent directory?
+.elif defined(_SANITITY_CHECK_INCS) && ${_HAVE_INCS} == "maybe"
+.warning ${.CURDIR}: Found includes but _HAVE_INCS=${_HAVE_INCS}. \
+    Did you forget to set SUBDIR_WITH_INCS in the parent directory?
+.endif
+.endif
+.endfor
+.endif

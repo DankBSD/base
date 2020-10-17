@@ -12,4 +12,6 @@ SUBDIR+=libssh
 
 SUBDIR.${MK_TESTS}+= tests
 
+SUBDIR_WITH_INCS=libcrypto
+
 .include <bsd.subdir.mk>

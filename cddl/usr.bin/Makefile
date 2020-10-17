@@ -20,6 +20,7 @@ _zstream = zstream
 _zstreamdump = zstreamdump
 .endif
 
+SUBDIR_WITH_INCS=${_zinject} ${_zstream}
 SUBDIR_PARALLEL=
 
 .include <bsd.subdir.mk>

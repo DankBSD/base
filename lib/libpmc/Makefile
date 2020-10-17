@@ -122,4 +122,7 @@ MLINKS+= \
 	pmclog.3 pmclog_feed.3 \
 	pmclog.3 pmclog_read.3
 
+# Skip unncessary make includes in the subdirectories
+SUBDIR_WITH_INCS=
+
 .include <bsd.lib.mk>

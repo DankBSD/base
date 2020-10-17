@@ -7,6 +7,7 @@ SUBDIR=	lib .WAIT \
 
 SUBDIR.${MK_TESTS}+= tests
 
+SUBDIR_WITH_INCS=lib usr.bin usr.sbin
 SUBDIR_PARALLEL=
 
 .include <bsd.subdir.mk>

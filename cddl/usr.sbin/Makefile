@@ -45,6 +45,7 @@ _dwatch=	dwatch
 _lockstat=	lockstat
 .endif
 
+SUBDIR_WITH_INCS=zdb
 SUBDIR_PARALLEL=
 
 .include <bsd.subdir.mk>

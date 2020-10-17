@@ -38,4 +38,6 @@ insecure: .MAKE .PHONY
 	${MAKE} MK_CRYPT=no install
 .endfor
 
+SUBDIR_WITH_INCS=lib
+
 .include <bsd.subdir.mk>

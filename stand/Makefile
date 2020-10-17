@@ -83,4 +83,7 @@ SUBDIR_DEPEND_efi+=	fdt
 
 SUBDIR_PARALLEL=	yes
 
+# Skip make includes for this part of the tree
+SUBDIR_WITH_INCS=
+
 .include <bsd.subdir.mk>

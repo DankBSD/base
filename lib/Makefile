@@ -227,4 +227,6 @@ SUBDIR.${MK_ZFS}+=	libbe
 SUBDIR_PARALLEL=
 .endif
 
+SUBDIR_WITH_INCS=${SUBDIR:Ntests:Nlibpam:Nlibiconv_modules}
+
 .include <bsd.subdir.mk>

@@ -119,4 +119,7 @@ _tests=		tests
 
 .include <bsd.arch.inc.mk>
 
+# Skip make includes for this part of the tree
+SUBDIR_WITH_INCS=
+
 .include <bsd.subdir.mk>

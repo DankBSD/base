@@ -293,5 +293,7 @@ SUBDIR+=	mkesdb_static
 .include <bsd.arch.inc.mk>
 
 SUBDIR_PARALLEL=
+# Only lex installs includes, skip it for all other directories
+SUBDIR_WITH_INCS=lex
 
 .include <bsd.subdir.mk>
