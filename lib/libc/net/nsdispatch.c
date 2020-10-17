@@ -336,7 +336,9 @@ nss_configure(void)
 {
 	static time_t	 confmod;
 	static int	 already_initialized = 0;
+#ifdef NS_REREAD_CONF
 	struct stat	 statbuf;
+#endif
 	int		 result, isthreaded;
 	const char	*path;
 #ifdef NS_CACHING
@@ -353,29 +355,32 @@ nss_configure(void)
 	if (path == NULL)
 #endif
 		path = _PATH_NS_CONF;
-#ifndef NS_REREAD_CONF
+#ifdef NS_REREAD_CONF
 	/*
 	 * Define NS_REREAD_CONF to have nsswitch notice changes
 	 * to nsswitch.conf(5) during runtime.  This involves calling
 	 * stat(2) every time, which can result in performance hit.
 	 */
-	if (already_initialized)
-		return (0);
-	already_initialized = 1;
-#endif /* NS_REREAD_CONF */
 	if (stat(path, &statbuf) != 0)
 		return (0);
 	if (statbuf.st_mtime <= confmod)
 		return (0);
+#else /* !NS_REREAD_CONF */
+	if (already_initialized)
+		return (0);
+	already_initialized = 1;
+#endif /* !NS_REREAD_CONF */
 	if (isthreaded) {
 		(void)_pthread_rwlock_unlock(&nss_lock);
 		result = _pthread_rwlock_wrlock(&nss_lock);
 		if (result != 0)
 			return (result);
+#ifdef NS_REREAD_CONF
 		if (stat(path, &statbuf) != 0)
 			goto fin;
 		if (statbuf.st_mtime <= confmod)
 			goto fin;
+#endif /* NS_REREAD_CONF */
 	}
 	_nsyyin = fopen(path, "re");
 	if (_nsyyin == NULL)
@@ -390,7 +395,9 @@ nss_configure(void)
 	_nsyyparse();
 	(void)fclose(_nsyyin);
 	vector_sort(_nsmap, _nsmapsize, sizeof(*_nsmap), string_compare);
+#ifdef NS_REREAD_CONF
 	confmod = statbuf.st_mtime;
+#endif /* NS_REREAD_CONF */
 
 #ifdef NS_CACHING
 	handle = libc_dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
