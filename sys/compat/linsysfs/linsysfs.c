@@ -347,10 +347,10 @@ linsysfs_fill_uevent_pci(PFS_FILL_ARGS)
 }
 
 /*
- * Filler function for drm uevent file
+ * Filler function for drm card uevent file
  */
 static int
-linsysfs_fill_uevent_drm(PFS_FILL_ARGS)
+linsysfs_fill_uevent_drm_card(PFS_FILL_ARGS)
 {
 	device_t dev;
 	int unit;
@@ -358,7 +358,24 @@ linsysfs_fill_uevent_drm(PFS_FILL_ARGS)
 	dev = (device_t)pn->pn_data;
 	unit = device_get_unit(dev);
 	sbuf_printf(sb,
-	    "MAJOR=226\nMINOR=%d\nDEVNAME=dri/card%d\nDEVTYPE=dri_minor\n",
+	    "MAJOR=226\nMINOR=%d\nDEVNAME=dri/card%d\nDEVTYPE=drm_minor\n",
+	    unit, unit);
+	return (0);
+}
+
+/*
+ * Filler function for drm render node uevent file
+ */
+static int
+linsysfs_fill_uevent_drm_render(PFS_FILL_ARGS)
+{
+	device_t dev;
+	int unit;
+
+	dev = (device_t)pn->pn_data;
+	unit = device_get_unit(dev) + 128;
+	sbuf_printf(sb,
+	    "MAJOR=226\nMINOR=%d\nDEVNAME=dri/renderD%d\nDEVTYPE=drm_minor\n",
 	    unit, unit);
 	return (0);
 }
@@ -521,6 +538,8 @@ linsysfs_run_bus(device_t dev, struct pfs_node *dir, struct pfs_node *scsi,
 			dinfo = device_get_ivars(parent);
 			if (dinfo != NULL && dinfo->cfg.baseclass == PCIC_DISPLAY) {
 				pfs_create_dir(dir, "drm", NULL, NULL, NULL, 0);
+
+				/* card, e.g. dev/char/226:0 for /dev/dri/card0 */
 				sprintf(devname, "226:%d",
 				    device_get_unit(dev));
 				sub_dir = pfs_create_dir(chardev,
@@ -530,11 +549,33 @@ linsysfs_run_bus(device_t dev, struct pfs_node *dir, struct pfs_node *scsi,
 				    NULL, NULL, PFS_RD);
 				cur_file->pn_data = (void*)dir;
 				cur_file = pfs_create_file(sub_dir,
-				    "uevent", &linsysfs_fill_uevent_drm, NULL,
+				    "uevent", &linsysfs_fill_uevent_drm_card, NULL,
 				    NULL, NULL, PFS_RD);
 				cur_file->pn_data = (void*)dev;
 				sprintf(devname, "card%d",
 				    device_get_unit(dev));
+				sub_dir = pfs_create_dir(drm,
+				    devname, NULL, NULL, NULL, 0);
+				cur_file = pfs_create_link(sub_dir,
+				    "device", &linsysfs_fill_vgapci, NULL,
+				    NULL, NULL, PFS_RD);
+				cur_file->pn_data = (void*)dir;
+
+				/* render node, e.g. dev/char/226:128 for /dev/dri/renderD128 */
+				sprintf(devname, "226:%d",
+				    device_get_unit(dev) + 128);
+				sub_dir = pfs_create_dir(chardev,
+				    devname, NULL, NULL, NULL, 0);
+				cur_file = pfs_create_link(sub_dir,
+				    "device", &linsysfs_fill_vgapci, NULL,
+				    NULL, NULL, PFS_RD);
+				cur_file->pn_data = (void*)dir;
+				cur_file = pfs_create_file(sub_dir,
+				    "uevent", &linsysfs_fill_uevent_drm_render, NULL,
+				    NULL, NULL, PFS_RD);
+				cur_file->pn_data = (void*)dev;
+				sprintf(devname, "renderD%d",
+				    device_get_unit(dev) + 128);
 				sub_dir = pfs_create_dir(drm,
 				    devname, NULL, NULL, NULL, 0);
 				cur_file = pfs_create_link(sub_dir,
