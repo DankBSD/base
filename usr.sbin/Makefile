@@ -218,6 +218,6 @@ SUBDIR.${MK_TESTS}+=	tests
 
 SUBDIR_PARALLEL=
 # Skip make includes for this part of the tree
-SUBDIR_WITH_INCS=
+SUBDIR_WITH_INCS=	${SUBDIR:Mbsnmpd}
 
 .include <bsd.subdir.mk>

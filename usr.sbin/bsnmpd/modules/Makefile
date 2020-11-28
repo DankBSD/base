@@ -34,4 +34,6 @@ INCSDIR= ${INCLUDEDIR}/bsnmp
 
 SUBDIR_TARGETS+=	smilint
 
+SUBDIR_WITH_INCS=	snmp_bridge snmp_mibII ${SUBDIR:Msnmp_netgraph}
+
 .include <bsd.prog.mk>
