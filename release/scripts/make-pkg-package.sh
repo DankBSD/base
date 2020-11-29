@@ -21,6 +21,7 @@ ${PKG_CMD} -o ABI_FILE=${WSTAGEDIR}/bin/sh \
 	-r ${WRKDIR}/stage \
 	-p ${WRKDIR}/.PLIST.mktmp \
 	-o ${REPODIR}/$(${PKG_CMD} -o ABI_FILE=${WSTAGEDIR}/bin/sh config ABI)/${PKG_VERSION}
+	-f tzst
 mkdir -p ${REPODIR}/$(${PKG_CMD} -o ABI_FILE=${WSTAGEDIR}/bin/sh config ABI)/${PKG_VERSION}/Latest/
 cd ${REPODIR}/$(${PKG_CMD} -o ABI_FILE=${WSTAGEDIR}/bin/sh config ABI)/${PKG_VERSION}/Latest/ && \
-	ln -s ../pkg-*.txz
+	ln -s ../pkg-*.tzst
