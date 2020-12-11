@@ -95,7 +95,7 @@ __FBSDID("$FreeBSD$");
 enum chips { w83627hf, w83627s, w83697hf, w83697ug, w83637hf, w83627thf,
 	     w83687thf, w83627ehf, w83627dhg, w83627uhg, w83667hg,
 	     w83627dhg_p, w83667hg_b, nct6775, nct6776, nct6779, nct6791,
-	     nct6792, nct6793, nct6795, nct6102 };
+	     nct6792, nct6793, nct6795, nct6796, nct6102 };
 
 struct wb_softc {
 	device_t		dev;
@@ -233,6 +233,11 @@ struct winbond_vendor_device_id {
 		.device_id	= 0xd3,
 		.chip		= nct6795,
 		.descr		= "Nuvoton NCT6795",
+	},
+	{
+		.device_id	= 0xd4,
+		.chip		= nct6796,
+		.descr		= "Nuvoton NCT6796",
 	},
 };
 
@@ -576,6 +581,7 @@ wb_attach(device_t dev)
 	case nct6792:
 	case nct6793:
 	case nct6795:
+	case nct6796:
 	case nct6102:
 		/*
 		 * These chips have a fixed WDTO# output pin (W83627UHG),

@@ -436,6 +436,11 @@ static const struct {
 		.devices = nvt_devices,
 	},
 	{
+		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xd400, .mask = 0xff,
+		.descr = "Nuvoton NCT6796",
+		.devices = nvt_devices,
+	},
+	{
 		.vendor = SUPERIO_VENDOR_FINTEK, .devid = 0x1210, .mask = 0xff,
 		.descr = "Fintek F81803",
 		.devices = fintek_devices,
