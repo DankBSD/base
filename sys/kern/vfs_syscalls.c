@@ -1504,7 +1504,7 @@ sys_linkat(struct thread *td, struct linkat_args *uap)
 	    AT_RESOLVE_BENEATH)));
 }
 
-int hardlink_check_uid = 0;
+int hardlink_check_uid = 1; /* Sounds reasonable..? */
 SYSCTL_INT(_security_bsd, OID_AUTO, hardlink_check_uid, CTLFLAG_RW,
     &hardlink_check_uid, 0,
     "Unprivileged processes cannot create hard links to files owned by other "

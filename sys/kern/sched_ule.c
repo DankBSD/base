@@ -215,7 +215,7 @@ static int __read_mostly sched_slice_min = 1;	/* reset during boot. */
 #ifdef FULL_PREEMPTION
 static int __read_mostly preempt_thresh = PRI_MAX_IDLE;
 #else
-static int __read_mostly preempt_thresh = PRI_MIN_KERN;
+static int __read_mostly preempt_thresh = PRI_MIN_IDLE; /* Well known better value for desktops */
 #endif
 #else 
 static int __read_mostly preempt_thresh = 0;
@@ -274,7 +274,7 @@ static int rebalance = 1;
 static int balance_interval = 128;	/* Default set in sched_initticks(). */
 static int __read_mostly affinity;
 static int __read_mostly steal_idle = 1;
-static int __read_mostly steal_thresh = 2;
+static int __read_mostly steal_thresh = 1; /* FreeBSD's default of 2 is bad for desktop responsiveness, very noticeable as video frame drops, stuttering etc. */
 static int __read_mostly always_steal = 0;
 static int __read_mostly trysteal_limit = 2;
 

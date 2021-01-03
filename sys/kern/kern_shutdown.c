@@ -927,7 +927,7 @@ vpanic(const char *fmt, va_list ap)
  * soft-updates inconsistencies.
  */
 #ifndef POWEROFF_DELAY
-# define POWEROFF_DELAY 5000
+# define POWEROFF_DELAY 500 /* ^^ Lowered because who cares about that when ZFS exists */
 #endif
 static int poweroff_delay = POWEROFF_DELAY;
 
@@ -950,7 +950,7 @@ poweroff_wait(void *junk, int howto)
  * to cause sync to fail).  For each of these system processes, register
  * shutdown_kproc() as a handler for one of shutdown events.
  */
-static int kproc_shutdown_wait = 60;
+static int kproc_shutdown_wait = 15; /* These rarely take that much but lower just in case */
 SYSCTL_INT(_kern_shutdown, OID_AUTO, kproc_shutdown_wait, CTLFLAG_RW,
     &kproc_shutdown_wait, 0, "Max wait time (sec) to stop for each process");
 

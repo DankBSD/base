@@ -162,7 +162,7 @@ SYSCTL_INT(_vm, OID_AUTO, pfault_oom_attempts, CTLFLAG_RWTUN,
     "Number of page allocation attempts in page fault handler before it "
     "triggers OOM handling");
 
-static int vm_pfault_oom_wait = 10;
+static int vm_pfault_oom_wait = 3; /* Shortened for desktop usage */
 SYSCTL_INT(_vm, OID_AUTO, pfault_oom_wait, CTLFLAG_RWTUN,
     &vm_pfault_oom_wait, 0,
     "Number of seconds to wait for free pages before retrying "

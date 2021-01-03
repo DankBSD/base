@@ -816,7 +816,7 @@ ahci_ch_attach(device_t dev)
 	ch->subdeviceid = ctlr->subdeviceid;
 	ch->numslots = ((ch->caps & AHCI_CAP_NCS) >> AHCI_CAP_NCS_SHIFT) + 1;
 	mtx_init(&ch->mtx, "AHCI channel lock", NULL, MTX_DEF);
-	ch->pm_level = 0;
+	ch->pm_level = 5;
 	resource_int_value(device_get_name(dev),
 	    device_get_unit(dev), "pm_level", &ch->pm_level);
 	STAILQ_INIT(&ch->doneq);

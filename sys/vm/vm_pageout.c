@@ -148,7 +148,7 @@ SDT_PROBE_DEFINE(vm, , , vm__lowmem_scan);
 #define	VM_LAUNDER_RATE		10
 #define	VM_INACT_SCAN_RATE	10
 
-static int vm_pageout_oom_seq = 12;
+static int vm_pageout_oom_seq = 6; /* Start OOM sooner to avoid long periods of unresponsiveness in that situation */
 
 static int vm_pageout_update_period;
 static int disable_swap_pageouts;

@@ -80,7 +80,7 @@ static int	vfs_domount(struct thread *td, const char *fstype, char *fspath,
 		    uint64_t fsflags, struct vfsoptlist **optlist);
 static void	free_mntarg(struct mntarg *ma);
 
-static int	usermount = 0;
+static int	usermount = 1;
 SYSCTL_INT(_vfs, OID_AUTO, usermount, CTLFLAG_RW, &usermount, 0,
     "Unprivileged users may mount and unmount file systems");
 

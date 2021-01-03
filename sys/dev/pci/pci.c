@@ -352,7 +352,7 @@ SYSCTL_INT(_hw_pci, OID_AUTO, realloc_bars, CTLFLAG_RWTUN,
     "Attempt to allocate a new range for any BARs whose original "
     "firmware-assigned ranges fail to allocate during the initial device scan.");
 
-static int pci_do_power_nodriver = 0;
+static int pci_do_power_nodriver = 3; /* What could possibly go wrong? :) */
 SYSCTL_INT(_hw_pci, OID_AUTO, do_power_nodriver, CTLFLAG_RWTUN,
     &pci_do_power_nodriver, 0,
     "Place a function into D3 state when no driver attaches to it.  0 means"
