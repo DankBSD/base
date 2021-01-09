@@ -1,0 +1,3 @@
+[submodule "sys/modules/drm-kmod"]
+	path = sys/modules/drm-kmod
+	url = https://github.com/unrelentingtech/drm-kmod
