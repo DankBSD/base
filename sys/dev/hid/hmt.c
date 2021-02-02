@@ -822,10 +822,6 @@ hmt_hid_parse(struct hmt_softc *sc, const void *d_ptr, hid_size_t d_len,
 			return (HMT_TYPE_UNSUPPORTED);
 	}
 
-	/* Touchpads must have at least one button */
-	if (type == HMT_TYPE_TOUCHPAD && !sc->max_button && !has_int_button)
-		return (HMT_TYPE_UNSUPPORTED);
-
 	/*
 	 * According to specifications 'Contact Count Maximum' should be read
 	 * from Feature Report rather than from HID descriptor. Set sane
