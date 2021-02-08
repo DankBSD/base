@@ -1999,8 +1999,8 @@ efi_map_sysctl_handler(SYSCTL_HANDLER_ARGS)
 	return (SYSCTL_OUT(req, efihdr, efisize));
 }
 SYSCTL_PROC(_machdep, OID_AUTO, efi_map,
-    CTLTYPE_OPAQUE | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,
-    efi_map_sysctl_handler, "S,efi_map_header",
+    CTLTYPE_OPAQUE | CTLFLAG_RD | CTLFLAG_MPSAFE | CTLFLAG_ROOTONLY,
+    NULL, 0, efi_map_sysctl_handler, "S,efi_map_header",
     "Raw EFI Memory Map");
 
 void
