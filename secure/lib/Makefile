@@ -4,7 +4,7 @@
 
 SUBDIR= 
 .if ${MK_OPENSSL} != "no"
-SUBDIR+=libcrypto libssl
+SUBDIR+=libcrypto libssl libtls
 .if ${MK_OPENSSH} != "no"
 SUBDIR+=libssh
 .endif
@@ -12,6 +12,6 @@ SUBDIR+=libssh
 
 SUBDIR.${MK_TESTS}+= tests
 
-SUBDIR_WITH_INCS=libcrypto
+SUBDIR_WITH_INCS=libcrypto libtls
 
 .include <bsd.subdir.mk>
