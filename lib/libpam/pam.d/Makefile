@@ -7,6 +7,7 @@ NO_OBJ=
 CONFGROUPS=	CONFS
 CONFS=	README \
 	cron \
+	doas \
 	imap \
 	login \
 	other \
