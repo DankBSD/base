@@ -10,3 +10,6 @@
 [submodule "contrib/doas"]
 	path = contrib/doas
 	url = https://github.com/slicer69/doas
+[submodule "contrib/dhcpcd"]
+	path = contrib/dhcpcd
+	url = https://github.com/rsmarples/dhcpcd
