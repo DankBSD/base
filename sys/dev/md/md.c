@@ -92,6 +92,7 @@
 #include <sys/uio.h>
 #include <sys/vnode.h>
 #include <sys/disk.h>
+#include <sys/priv.h>
 
 #include <geom/geom.h>
 #include <geom/geom_int.h>
@@ -1769,6 +1770,9 @@ kern_mddetach_locked(struct thread *td, struct md_req *mdr)
 	sc = mdfind(mdr->md_unit);
 	if (sc == NULL)
 		return (ENOENT);
+	if (priv_check(td, PRIV_VFS_ADMIN) != 0)
+		if (!sc->cred || td->td_ucred->cr_uid != sc->cred->cr_uid)
+			return (EPERM);
 	if (sc->opencount != 0 && !(sc->flags & MD_FORCE) &&
 	    !(mdr->md_options & MD_FORCE))
 		return (EBUSY);
@@ -1787,7 +1791,7 @@ kern_mddetach(struct thread *td, struct md_req *mdr)
 }
 
 static int
-kern_mdresize_locked(struct md_req *mdr)
+kern_mdresize_locked(struct thread *td, struct md_req *mdr)
 {
 	struct md_s *sc;
 
@@ -1799,6 +1803,9 @@ kern_mdresize_locked(struct md_req *mdr)
 	sc = mdfind(mdr->md_unit);
 	if (sc == NULL)
 		return (ENOENT);
+	if (priv_check(td, PRIV_VFS_ADMIN) != 0)
+		if (!sc->cred || td->td_ucred->cr_uid != sc->cred->cr_uid)
+			return (EPERM);
 	if (mdr->md_mediasize < sc->sectorsize)
 		return (EINVAL);
 	if (mdr->md_mediasize < sc->mediasize &&
@@ -1809,12 +1816,12 @@ kern_mdresize_locked(struct md_req *mdr)
 }
 
 static int
-kern_mdresize(struct md_req *mdr)
+kern_mdresize(struct thread *td, struct md_req *mdr)
 {
 	int error;
 
 	sx_xlock(&md_sx);
-	error = kern_mdresize_locked(mdr);
+	error = kern_mdresize_locked(td, mdr);
 	sx_xunlock(&md_sx);
 	return (error);
 }
@@ -1950,7 +1957,7 @@ mdctlioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 #ifdef COMPAT_FREEBSD32
 	case MDIOCRESIZE_32:
 #endif
-		error = kern_mdresize(&mdr);
+		error = kern_mdresize(td, &mdr);
 		break;
 	case MDIOCQUERY:
 #ifdef COMPAT_FREEBSD32
