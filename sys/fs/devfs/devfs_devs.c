@@ -30,6 +30,8 @@
  * $FreeBSD$
  */
 
+#include "opt_capsicum.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
@@ -42,6 +44,9 @@
 #include <sys/sx.h>
 #include <sys/sysctl.h>
 #include <sys/vnode.h>
+#include <sys/capsicum.h>
+#include <sys/file.h>
+#include <sys/filedesc.h>
 
 #include <sys/kdb.h>
 
@@ -87,6 +92,13 @@ sysctl_devname(SYSCTL_HANDLER_ARGS)
 #endif
 	struct cdev_priv *cdp;
 	struct cdev *dev;
+#ifdef CAPABILITY_MODE
+	struct filedesc *fdp;
+	struct file *fp;
+	struct vnode *vp;
+	int i, lastfile;
+	bool open_found = false;
+#endif
 
 #ifdef COMPAT_FREEBSD11
 	if (req->newlen == sizeof(ud_compat)) {
@@ -111,13 +123,35 @@ sysctl_devname(SYSCTL_HANDLER_ARGS)
 	dev_unlock();
 	if (dev == NULL)
 		return (ENOENT);
+#ifdef CAPABILITY_MODE
+	if (IN_CAPABILITY_MODE(req->td)) {
+		fdp = req->td->td_proc->p_fd;
+		FILEDESC_XLOCK(fdp);
+		lastfile = fdlastfile(fdp);
+		for (i = 0; i <= lastfile; i++) {
+			fp = fdp->fd_ofiles[i].fde_file;
+			if (fp != NULL && fp->f_type == DTYPE_DEV) {
+				vp = fp->f_vnode;
+				if (vp->v_type == VCHR && vp->v_rdev == dev) {
+					open_found = true;
+					break;
+				}
+			}
+		}
+		FILEDESC_XUNLOCK(fdp);
+		if (!open_found) {
+			dev_rel(dev);
+			return (ECAPMODE);
+		}
+	}
+#endif
 	error = SYSCTL_OUT(req, dev->si_name, strlen(dev->si_name) + 1);
 	dev_rel(dev);
 	return (error);
 }
 
 SYSCTL_PROC(_kern, OID_AUTO, devname,
-    CTLTYPE_OPAQUE|CTLFLAG_RW|CTLFLAG_ANYBODY|CTLFLAG_MPSAFE,
+    CTLTYPE_OPAQUE|CTLFLAG_RW|CTLFLAG_CAPRW|CTLFLAG_ANYBODY|CTLFLAG_MPSAFE,
     NULL, 0, sysctl_devname, "", "devname(3) handler");
 
 SYSCTL_INT(_debug_sizeof, OID_AUTO, cdev, CTLFLAG_RD,
