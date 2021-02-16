@@ -254,6 +254,11 @@ proc_dtor(void *mem, int size, void *arg)
 #endif
 	if (p->p_ksi != NULL)
 		KASSERT(! KSI_ONQ(p->p_ksi), ("SIGCHLD queue"));
+	while (!STAILQ_EMPTY(&p->p_kpreopens)) {
+		struct kpreopen *kp = STAILQ_FIRST(&p->p_kpreopens);
+		STAILQ_REMOVE_HEAD(&p->p_kpreopens, kp_entry);
+		free(kp, M_KPREOPEN);
+	}
 }
 
 /*

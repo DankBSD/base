@@ -301,6 +301,17 @@ namei_setup(struct nameidata *ndp, struct vnode **dpp, struct pwd **pwdp)
 	*pwdp = NULL;
 	*dpp = NULL;
 
+	if (ndp->ni_dirfd == AT_FDCWD && !STAILQ_EMPTY(&td->td_proc->p_kpreopens)) {
+		struct kpreopen *kp;
+		STAILQ_FOREACH(kp, &td->td_proc->p_kpreopens, kp_entry)
+			if (strlen(cnp->cn_pnbuf) >= kp->kp_pathlen && isprefix(kp->kp_path, kp->kp_pathlen, cnp->cn_pnbuf)) {
+				// printf("BEFORE: '%s' @ %d\n", cnp->cn_pnbuf, ndp->ni_dirfd);
+				ndp->ni_dirfd = kp->kp_fd;
+				memmove(cnp->cn_pnbuf, cnp->cn_pnbuf + kp->kp_pathlen + 1, strlen(cnp->cn_pnbuf + kp->kp_pathlen + 1) + 1);
+				// printf("AFTER: '%s' @ %d\n", cnp->cn_pnbuf, ndp->ni_dirfd);
+			}
+	}
+
 #ifdef CAPABILITY_MODE
 	/*
 	 * In capability mode, lookups must be restricted to happen in

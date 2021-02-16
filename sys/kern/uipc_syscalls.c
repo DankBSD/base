@@ -190,7 +190,8 @@ kern_bindat(struct thread *td, int dirfd, int fd, struct sockaddr *sa)
 	int error;
 
 #ifdef CAPABILITY_MODE
-	if (IN_CAPABILITY_MODE(td) && (dirfd == AT_FDCWD))
+	// DankBSD: for UNIX we still have checks in the VFS lookup, and kpreopen works there
+	if (IN_CAPABILITY_MODE(td) && (dirfd == AT_FDCWD) && (sa->sa_family != AF_UNIX))
 		return (ECAPMODE);
 #endif
 
@@ -487,7 +488,8 @@ kern_connectat(struct thread *td, int dirfd, int fd, struct sockaddr *sa)
 	int error, interrupted = 0;
 
 #ifdef CAPABILITY_MODE
-	if (IN_CAPABILITY_MODE(td) && (dirfd == AT_FDCWD))
+	// DankBSD: for UNIX we still have checks in the VFS lookup, and kpreopen works there
+	if (IN_CAPABILITY_MODE(td) && (dirfd == AT_FDCWD) && (sa->sa_family != AF_UNIX))
 		return (ECAPMODE);
 #endif
 

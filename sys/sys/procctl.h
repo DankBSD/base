@@ -64,6 +64,8 @@
 #define	PROC_STACKGAP_CTL	17	/* en/dis stack gap on MAP_STACK */
 #define	PROC_STACKGAP_STATUS	18	/* query stack gap */
 
+#define	PROC_KPREOPEN_ADD	69	/* add preopened dir for vfs_lookup */
+
 /* Operations for PROC_SPROTECT (passed in integer arg). */
 #define	PPROT_OP(x)	((x) & 0xf)
 #define	PPROT_SET	1
