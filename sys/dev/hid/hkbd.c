@@ -143,8 +143,12 @@ struct hkbd_softc {
 	struct mtx sc_mtx;
 	struct task sc_task;
 	struct callout sc_callout;
+	/* All reported keycodes */
 	bitstr_t bit_decl(sc_ndata, HKBD_NKEYCODE);
 	bitstr_t bit_decl(sc_odata, HKBD_NKEYCODE);
+	/* Keycodes reported in array fields only */
+	bitstr_t bit_decl(sc_ndata0, HKBD_NKEYCODE);
+	bitstr_t bit_decl(sc_odata0, HKBD_NKEYCODE);
 
 	struct thread *sc_poll_thread;
 #ifdef EVDEV_SUPPORT
@@ -527,6 +531,7 @@ hkbd_interrupt(struct hkbd_softc *sc)
 	}
 
 	/* synchronize old data with new data */
+	memcpy(sc->sc_odata0, sc->sc_ndata0, bitstr_size(HKBD_NKEYCODE));
 	memcpy(sc->sc_odata, sc->sc_ndata, bitstr_size(HKBD_NKEYCODE));
 
 	/* check if last key is still pressed */
@@ -661,7 +666,14 @@ hkbd_intr_callback(void *context, void *data, hid_size_t len)
 	}
 
 	/* clear temporary storage */
-	bit_nclear(sc->sc_ndata, 0, HKBD_NKEYCODE - 1);
+	if (bit_test(sc->sc_loc_key_valid, 0) && id == sc->sc_id_loc_key[0]) {
+		BIT_FOREACH(sc->sc_ndata0, HKBD_NKEYCODE, i)
+			bit_clear(sc->sc_ndata, i);
+		bit_nclear(sc->sc_ndata0, 0, HKBD_NKEYCODE - 1);
+	}
+	BIT_FOREACH(sc->sc_ndata, HKBD_NKEYCODE, i)
+		if (id == sc->sc_id_loc_key[i])
+			bit_clear(sc->sc_ndata, i);
 
 	/* clear modifiers */
 	modifiers = 0;
@@ -693,6 +705,8 @@ hkbd_intr_callback(void *context, void *data, hid_size_t len)
 				tmp_loc.pos += tmp_loc.size;
 				if (key == KEY_ERROR) {
 					DPRINTF("KEY_ERROR\n");
+					memcpy(sc->sc_ndata0, sc->sc_odata0,
+					    bitstr_size(HKBD_NKEYCODE));
 					memcpy(sc->sc_ndata, sc->sc_odata,
 					    bitstr_size(HKBD_NKEYCODE));
 					return;	/* ignore */
@@ -705,6 +719,7 @@ hkbd_intr_callback(void *context, void *data, hid_size_t len)
 					continue;
 				/* set key in bitmap */
 				bit_set(sc->sc_ndata, key);
+				bit_set(sc->sc_ndata0, key);
 			}
 		} else if (hid_get_data(buf, len, &sc->sc_loc_key[i])) {
 			uint32_t key = i;
@@ -1691,6 +1706,8 @@ hkbd_clear_state(keyboard_t *kbd)
 #endif
 	bit_nclear(sc->sc_ndata, 0, HKBD_NKEYCODE - 1);
 	bit_nclear(sc->sc_odata, 0, HKBD_NKEYCODE - 1);
+	bit_nclear(sc->sc_ndata0, 0, HKBD_NKEYCODE - 1);
+	bit_nclear(sc->sc_odata0, 0, HKBD_NKEYCODE - 1);
 	sc->sc_repeat_time = 0;
 	sc->sc_repeat_key = 0;
 }
