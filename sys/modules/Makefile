@@ -205,6 +205,7 @@ SUBDIR=	\
 	kgssapi \
 	kgssapi_krb5 \
 	khelp \
+	kms-firmware \
 	krpc \
 	ksyms \
 	${_ktls_ocf} \

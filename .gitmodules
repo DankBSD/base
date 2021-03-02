@@ -1,3 +1,6 @@
 [submodule "sys/modules/drm-kmod"]
 	path = sys/modules/drm-kmod
 	url = https://github.com/unrelentingtech/drm-kmod
+[submodule "sys/modules/kms-firmware"]
+	path = sys/modules/kms-firmware
+	url = https://github.com/FreeBSDDesktop/kms-firmware
