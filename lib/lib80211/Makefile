@@ -1,7 +1,8 @@
 # $FreeBSD$
 
 PACKAGE=	runtime
-CONFS=	regdomain.xml
+FILES=		regdomain.xml
+FILESDIR=	${SHAREDIR}/misc
 LIB=	80211
 SHLIBDIR?= /lib
 SHLIB_MAJOR= 1

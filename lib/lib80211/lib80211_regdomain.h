@@ -100,7 +100,7 @@ struct regdata {
 	struct ident		*ident;		/* identifier table */
 };
 
-#define	_PATH_REGDOMAIN	"/etc/regdomain.xml"
+#define	_PATH_REGDOMAIN	"/usr/share/misc/regdomain.xml"
 
 struct regdata *lib80211_alloc_regdata(void);
 void	lib80211_free_regdata(struct regdata *);
