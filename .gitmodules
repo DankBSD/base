@@ -13,3 +13,6 @@
 [submodule "contrib/dhcpcd"]
 	path = contrib/dhcpcd
 	url = https://github.com/rsmarples/dhcpcd
+[submodule "contrib/runit"]
+	path = contrib/runit
+	url = https://github.com/madscientist42/runit

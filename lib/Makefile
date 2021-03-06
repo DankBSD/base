@@ -87,6 +87,7 @@ SUBDIR=	${SUBDIR_BOOTSTRAP} \
 	librss \
 	librt \
 	librtld_db \
+	librunit \
 	libsbuf \
 	libstdbuf \
 	libstdthreads \

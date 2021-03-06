@@ -10,6 +10,7 @@ SUBDIR=	adduser \
 	cdcontrol \
 	chkgrp \
 	chown \
+	chpst \
 	chroot \
 	ckdist \
 	clear_locks \
@@ -75,6 +76,11 @@ SUBDIR=	adduser \
 	rpc.statd \
 	rpc.umntall \
 	rtprio \
+	runit \
+	runit-init \
+	runsv \
+	runsvdir \
+	runsvchdir \
 	rwhod \
 	service \
 	services_mkdb \
@@ -86,6 +92,7 @@ SUBDIR=	adduser \
 	snapinfo \
 	spi \
 	spray \
+	sv \
 	syslogd \
 	sysrc \
 	tcpdrop \
