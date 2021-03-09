@@ -339,7 +339,11 @@ ${SHLIB_NAME_FULL}: ${SOBJS}
 	${_LD:N${CCACHE_BIN}} ${LDFLAGS} ${SSP_CFLAGS} ${SOLINKOPTS} \
 	    -o ${.TARGET} -Wl,-soname,${SONAME} ${SOBJS} ${LDADD}
 .if ${MK_CTF} != "no"
+. if ${MK_LTO} != "no"
+	${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ${SOBJS:S/$/.o/}
+. else
 	${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ${SOBJS}
+. endif
 .endif
 
 .if ${MK_DEBUG_FILES} != "no"

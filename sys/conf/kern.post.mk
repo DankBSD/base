@@ -196,7 +196,11 @@ ${FULLKERNEL}: ${SYSTEM_DEP} vers.o
 .endif
 .if ${MK_CTF} != "no"
 	@echo ${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ...
-	@${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ${SYSTEM_OBJS} vers.o
+. if ${MK_LTO} != "no"
+	${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ${SYSTEM_OBJS:S/$/.o/:Nhack.pico.o:Nlocore.o.o:Nxen-locore.o.o} hack.pico locore.o xen-locore.o vers.o.o
+. else
+	${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ${SYSTEM_OBJS} vers.o
+. endif
 .endif
 .if !defined(DEBUG)
 	${OBJCOPY} --strip-debug ${.TARGET}

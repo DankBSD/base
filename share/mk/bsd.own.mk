@@ -154,7 +154,11 @@ __<bsd.own.mk>__:
 .if !defined(_WITHOUT_SRCCONF)
 
 .if ${MK_CTF} != "no"
+. if ${MK_LTO} != "no"
+CTFCONVERT_CMD=	(${LLVM_BIN}/llc ${.TARGET} && ${CC} -Wno-unused-command-line-argument ${PICFLAG} ${SHARED_CFLAGS} ${CFLAGS} -c ${.TARGET}.s && ${CTFCONVERT} ${CTFFLAGS} ${.TARGET}.o) || ${CP} ${.TARGET} ${.TARGET}.o
+. else
 CTFCONVERT_CMD=	${CTFCONVERT} ${CTFFLAGS} ${.TARGET}
+. endif
 .elif defined(.PARSEDIR) || (defined(MAKE_VERSION) && ${MAKE_VERSION} >= 5201111300)
 CTFCONVERT_CMD=
 .else

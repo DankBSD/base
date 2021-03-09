@@ -211,6 +211,10 @@ CFLAGS+=	-ffreestanding
 #
 CFLAGS+=	-fwrapv
 
+.if ${MK_LTO} != "no"
+CFLAGS+=	-flto
+.endif
+
 #
 # GCC SSP support
 #

@@ -285,7 +285,11 @@ FBT_CFLAGS+=	-I$S/cddl/dev/fbt/x86
 FBT_C=		${CC} -c ${FBT_CFLAGS}		${WERROR} ${PROF} ${.IMPSRC}
 
 .if ${MK_CTF} != "no"
+. if ${MK_LTO} != "no"
+NORMAL_CTFCONVERT=	(${LLVM_BIN}/llc ${.TARGET} && ${CC} -Wno-unused-command-line-argument ${PICFLAG} ${SHARED_CFLAGS} ${CFLAGS} -c ${.TARGET}.s && ${CTFCONVERT} ${CTFFLAGS} ${.TARGET}.o) || ${CP} ${.TARGET} ${.TARGET}.o
+. else
 NORMAL_CTFCONVERT=	${CTFCONVERT} ${CTFFLAGS} ${.TARGET}
+. endif
 .elif ${MAKE_VERSION} >= 5201111300
 NORMAL_CTFCONVERT=
 .else

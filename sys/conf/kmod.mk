@@ -248,7 +248,12 @@ ${FULLPROG}: ${OBJS}
 	${LD} -m ${LD_EMULATION} ${_LDFLAGS} ${LDSCRIPT_FLAGS} -r -d \
 	    -o ${.TARGET} ${OBJS}
 .if ${MK_CTF} != "no"
+. if ${MK_LTO} != "no"
+# do not match .fwo
+	${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ${OBJS:S/.o$/.o.o/}
+. else
 	${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ${OBJS}
+. endif
 .endif
 .if defined(EXPORT_SYMS)
 .if ${EXPORT_SYMS} != YES

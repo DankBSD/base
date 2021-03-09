@@ -37,6 +37,12 @@ PROG=	${PROG_CXX}
 MK_DEBUG_FILES=	no
 .endif
 
+.if ${MK_LTO} != "no"
+CFLAGS+= -flto
+CXXFLAGS+= -flto
+LDFLAGS+= -flto
+.endif
+
 # ELF hardening knobs
 .if ${MK_BIND_NOW} != "no"
 LDFLAGS+= -Wl,-znow
@@ -160,7 +166,11 @@ ${PROG_FULL}: ${OBJS}
 	    ${LDADD}
 .endif
 .if ${MK_CTF} != "no"
+. if ${MK_LTO} != "no"
+	${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ${OBJS:S/$/.o/}
+. else
 	${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ${OBJS}
+. endif
 .endif
 
 .else	# !defined(SRCS)
@@ -195,7 +205,11 @@ ${PROG_FULL}: ${OBJS}
 	    ${LDADD}
 .endif
 .if ${MK_CTF} != "no"
+. if ${MK_LTO} != "no"
+	${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ${OBJS:S/$/.o/}
+. else
 	${CTFMERGE} ${CTFFLAGS} -o ${.TARGET} ${OBJS}
+. endif
 .endif
 .endif # !target(${PROG})
 

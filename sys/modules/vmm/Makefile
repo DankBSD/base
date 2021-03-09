@@ -4,6 +4,9 @@
 
 KMOD=	vmm
 
+# lld segfault lol
+MK_LTO:= no
+
 SRCS=	opt_acpi.h opt_bhyve_snapshot.h opt_ddb.h
 SRCS+=	device_if.h bus_if.h pci_if.h pcib_if.h acpi_if.h vnode_if.h
 DPSRCS+=	vmx_assym.h svm_assym.h
