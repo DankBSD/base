@@ -192,16 +192,18 @@ MACHINE_CPU = k5 i586
 .  elif ${CPUTYPE} == "tigerlake" || ${CPUTYPE} == "cooperlake" || \
     ${CPUTYPE} == "cascadelake" || ${CPUTYPE} == "icelake-server" || \
     ${CPUTYPE} == "icelake-client" || ${CPUTYPE} == "cannonlake" || \
-    ${CPUTYPE} == "knm" || ${CPUTYPE} == "skylake-avx512" || ${CPUTYPE} == "knl"
+    ${CPUTYPE} == "knm" || ${CPUTYPE} == "skylake-avx512" || \
+    ${CPUTYPE} == "knl" || ${CPUTYPE} == "x86-64-v4"
 MACHINE_CPU = avx512 avx2 avx sse42 sse41 ssse3 sse3 sse2 sse i686 mmx i586
 .  elif ${CPUTYPE} == "skylake" || ${CPUTYPE} == "broadwell" || \
-    ${CPUTYPE} == "haswell"
+    ${CPUTYPE} == "haswell" || ${CPUTYPE} == "x86-64-v3"
 MACHINE_CPU = avx2 avx sse42 sse41 ssse3 sse3 sse2 sse i686 mmx i586
 .  elif ${CPUTYPE} == "ivybridge" || ${CPUTYPE} == "sandybridge"
 MACHINE_CPU = avx sse42 sse41 ssse3 sse3 sse2 sse i686 mmx i586
 .  elif ${CPUTYPE} == "tremont" || ${CPUTYPE} == "goldmont-plus" || \
     ${CPUTYPE} == "goldmont" || ${CPUTYPE} == "westmere" || \
-    ${CPUTYPE} == "nehalem" || ${CPUTYPE} == "silvermont"
+    ${CPUTYPE} == "nehalem" || ${CPUTYPE} == "silvermont" || \
+    ${CPUTYPE} == "x86-64-v2"
 MACHINE_CPU = sse42 sse41 ssse3 sse3 sse2 sse i686 mmx i586
 .  elif ${CPUTYPE} == "penryn"
 MACHINE_CPU = sse41 ssse3 sse3 sse2 sse i686 mmx i586
@@ -210,7 +212,7 @@ MACHINE_CPU = ssse3 sse3 sse2 sse i686 mmx i586
 .  elif ${CPUTYPE} == "yonah" || ${CPUTYPE} == "prescott"
 MACHINE_CPU = sse3 sse2 sse i686 mmx i586
 .  elif ${CPUTYPE} == "pentium4" || ${CPUTYPE} == "pentium4m" || \
-    ${CPUTYPE} == "pentium-m"
+    ${CPUTYPE} == "pentium-m" || ${CPUTYPE} == "x86-64"
 MACHINE_CPU = sse2 sse i686 mmx i586
 .  elif ${CPUTYPE} == "pentium3" || ${CPUTYPE} == "pentium3m"
 MACHINE_CPU = sse i686 mmx i586
@@ -258,16 +260,18 @@ MACHINE_CPU = k8 3dnow
 .  elif ${CPUTYPE} == "tigerlake" || ${CPUTYPE} == "cooperlake" || \
     ${CPUTYPE} == "cascadelake" || ${CPUTYPE} == "icelake-server" || \
     ${CPUTYPE} == "icelake-client" || ${CPUTYPE} == "cannonlake" || \
-    ${CPUTYPE} == "knm" || ${CPUTYPE} == "skylake-avx512" || ${CPUTYPE} == "knl"
+    ${CPUTYPE} == "knm" || ${CPUTYPE} == "skylake-avx512" || \
+    ${CPUTYPE} == "knl" || ${CPUTYPE} == "x86-64-v4"
 MACHINE_CPU = avx512 avx2 avx sse42 sse41 ssse3 sse3
 .  elif ${CPUTYPE} == "skylake" || ${CPUTYPE} == "broadwell" || \
-    ${CPUTYPE} == "haswell"
+    ${CPUTYPE} == "haswell" || ${CPUTYPE} == "x86-64-v3"
 MACHINE_CPU = avx2 avx sse42 sse41 ssse3 sse3
 .  elif ${CPUTYPE} == "ivybridge" || ${CPUTYPE} == "sandybridge"
 MACHINE_CPU = avx sse42 sse41 ssse3 sse3
 .  elif ${CPUTYPE} == "tremont" || ${CPUTYPE} == "goldmont-plus" || \
     ${CPUTYPE} == "goldmont" || ${CPUTYPE} == "westmere" || \
-    ${CPUTYPE} == "nehalem" || ${CPUTYPE} == "silvermont"
+    ${CPUTYPE} == "nehalem" || ${CPUTYPE} == "silvermont" || \
+    ${CPUTYPE} == "x86-64-v2"
 MACHINE_CPU = sse42 sse41 ssse3 sse3
 .  elif ${CPUTYPE} == "penryn"
 MACHINE_CPU = sse41 ssse3 sse3
