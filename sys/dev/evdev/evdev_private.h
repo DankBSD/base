@@ -247,6 +247,22 @@ struct evdev_client
     (((client)->ec_buffer_ready + (client)->ec_buffer_size - \
       (client)->ec_buffer_head) % (client)->ec_buffer_size)
 
+/* bitstring(3) helpers */
+static inline void
+bit_change(bitstr_t *bitstr, int bit, int value)
+{
+	if (value)
+		bit_set(bitstr, bit);
+	else
+		bit_clear(bitstr, bit);
+}
+#define	bit_foreach_at(_bitstr, _start, _nbits, _iter)			\
+	for (bit_ffs_at((_bitstr), (_start), (_nbits), &(_iter));	\
+	     (_iter) != -1;						\
+	     bit_ffs_at((_bitstr), (_iter) + 1, (_nbits), &(_iter)))
+#define	bit_foreach(_bitstr, _nbits, _iter)				\
+	bit_foreach_at(_bitstr, /*start*/0, _nbits, _iter)
+
 /* Input device interface: */
 void evdev_send_event(struct evdev_dev *, uint16_t, uint16_t, int32_t);
 int evdev_inject_event(struct evdev_dev *, uint16_t, uint16_t, int32_t);
@@ -269,14 +285,16 @@ void evdev_revoke_client(struct evdev_client *);
 /* Multitouch related functions: */
 void evdev_mt_init(struct evdev_dev *);
 void evdev_mt_free(struct evdev_dev *);
-int32_t evdev_get_last_mt_slot(struct evdev_dev *);
-void evdev_set_last_mt_slot(struct evdev_dev *, int32_t);
-int32_t evdev_get_mt_value(struct evdev_dev *, int32_t, int16_t);
-void evdev_set_mt_value(struct evdev_dev *, int32_t, int16_t, int32_t);
-void evdev_send_mt_compat(struct evdev_dev *);
-void evdev_send_mt_autorel(struct evdev_dev *);
+void evdev_mt_sync_frame(struct evdev_dev *);
+int evdev_mt_get_last_slot(struct evdev_dev *);
+void evdev_mt_set_last_slot(struct evdev_dev *, int);
+int32_t evdev_mt_get_value(struct evdev_dev *, int, int16_t);
+void evdev_mt_set_value(struct evdev_dev *, int, int16_t, int32_t);
+bool evdev_mt_record_event(struct evdev_dev *, uint16_t, uint16_t, int32_t);
+int32_t evdev_mt_reassign_id(struct evdev_dev *, int, int32_t);
 
 /* Utility functions: */
 void evdev_client_dumpqueue(struct evdev_client *);
+void evdev_send_nfingers(struct evdev_dev *, int);
 
 #endif	/* _DEV_EVDEV_EVDEV_PRIVATE_H */
