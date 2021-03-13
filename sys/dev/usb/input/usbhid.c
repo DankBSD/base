@@ -679,6 +679,11 @@ usbhid_probe(device_t dev)
 	if (usb_test_quirk(uaa, UQ_HID_IGNORE))
 		return (ENXIO);
 
+	if (uaa->info.idVendor == 0x5ac	&& uaa->info.bIfaceIndex == 2) {
+		device_printf(dev, "Skipping Apple Touchpad\n");
+		return (ENXIO);
+	}
+
 	/*
 	 * Setup temporary hid_device_info so that we can figure out some
 	 * basic quirks for this device.
