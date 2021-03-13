@@ -263,16 +263,22 @@ acpi_pci_update_device(ACPI_HANDLE handle, device_t pci_child)
 	 */
 	child = acpi_get_device(handle);
 	if (child != NULL) {
-		KASSERT(device_get_parent(child) ==
-		    devclass_get_device(devclass_find("acpi"), 0),
-		    ("%s: child (%s)'s parent is not acpi0", __func__,
-		    acpi_name(handle)));
-		return;
+		// KASSERT(device_get_parent(child) ==
+		//     devclass_get_device(devclass_find("acpi"), 0),
+		//     ("%s: child (%s)'s parent is not acpi0", __func__,
+		//     acpi_name(handle)));
+		// XXX: workaround :/
+		printf("%s: child (%s)'s parent (%s) is not acpi0", __func__,
+		    acpi_name(handle), device_get_name(device_get_parent(child)));
+		AcpiDetachData(handle, acpi_fake_objhandler);
+		// return;
 	}
 
 	/*
 	 * Update ACPI-CA to use the PCI enumerated device_t for this handle.
 	 */
+	printf("%s: attaching %s to %s\n", __func__,device_get_name(pci_child),
+	    acpi_name(handle));
 	status = AcpiAttachData(handle, acpi_fake_objhandler, pci_child);
 	if (ACPI_FAILURE(status))
 		printf("WARNING: Unable to attach object data to %s - %s\n",
